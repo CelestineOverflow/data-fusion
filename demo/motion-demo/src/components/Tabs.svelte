@@ -20,12 +20,16 @@
     import About from "./About.svelte";
     import SerialDemo from "./SerialDemo.svelte";
     import BlenderGlTf from "./Blender_glTF.svelte";
+    import IKdemo from "./IKdemo.svelte";
+    import IKloaded from "./IKloaded.svelte";
     let items = [
         { label: "Welcome", value: 1, component: Welcome, icon: "globe2" },
         { label: "Serial Demo", value: 2, component: SerialDemo, icon: "wrench" },
         { label: "Cube Demo", value: 3, component: Cube, icon: "wrench" },
         { label: "About this", value: 4, component: About, icon: "file-text" },
         { label: "Blender Import Demo", value: 5, component: BlenderGlTf, icon: "file-text" },
+        { label: "IK Demo", value: 6, component: IKdemo, icon: "file-text" },
+        { label: "IK loaded", value: 7, component: IKloaded, icon: "file-text"}
     ];
 </script>
 
@@ -53,4 +57,8 @@
     <About />
 {:else if activeTabValue === 5}
     <BlenderGlTf />
+{:else if activeTabValue === 6}
+    <IKdemo />
+{:else if activeTabValue === 7}
+    <IKloaded />
 {/if}
