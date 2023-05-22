@@ -16,3 +16,22 @@ for jupyter notebooks you can either view them on vscode (recommended) or use:
 
 - [jupyter](https://jupyter.org/install)
 
+## Sveltekit Setup
+
+for visualization we will be using sveltekit, you will need nodejs to run it:
+
+- [nodejs](https://nodejs.org/en/download/)
+
+to run the visualization, you will need to install the dependencies and run the dev server:
+
+```bash
+cd viewer
+npm install
+npm run dev
+```
+
+## Installing three.js for sveltekit
+```bash
+npm install --save three 
+npm i --save-dev @types/three
+```
