@@ -52,6 +52,18 @@ void print_bmi160()
 //send data to function pointer
 void send_bmi_data(int (*send_data)(String))
 {
+  // structure
+  // "id" : 0,
+  // "accelerometer": {
+  //     "x": 0,
+  //     "y": 0,
+  //     "z": 0
+  // },
+  // "gyroscope": {
+  //     "x": 0,
+  //     "y": 0,
+  //     "z": 0
+  // }
     int i = 0;
     int rslt;
     int16_t accelGyro[6] = {0};
@@ -61,18 +73,20 @@ void send_bmi_data(int (*send_data)(String))
     rslt = bmi160.getAccelGyroData(accelGyro);
     if (rslt == 0)
     {
-        for (i = 0; i < 6; i++)
-        {
-            if (i < 3)
-            {
-                send_data(String(accelGyro[i] * 3.14 / 180.0) + "\t");
-            }
-            else
-            {
-                send_data(String(accelGyro[i] / 16384.0) + "\t");
-            }
-        }
-        Serial.println();
+        String data = "{";
+        data += "\"id\": 0,";
+        data += "\"accelerometer\": {";
+        data += "\"x\": " + String(accelGyro[3] / 16384.0) + ",";
+        data += "\"y\": " + String(accelGyro[4] / 16384.0) + ",";
+        data += "\"z\": " + String(accelGyro[5] / 16384.0);
+        data += "},";
+        data += "\"gyroscope\": {";
+        data += "\"x\": " + String(accelGyro[0] * 3.14 / 180.0) + ",";
+        data += "\"y\": " + String(accelGyro[1] * 3.14 / 180.0) + ",";
+        data += "\"z\": " + String(accelGyro[2] * 3.14 / 180.0);
+        data += "}";
+        data += "}";
+        send_data(data);
     }
     else
     {
