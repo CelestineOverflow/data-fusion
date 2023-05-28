@@ -1,5 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { rotation_vector, position_vector} from '../stores/vectors.js';
+
     let socket: WebSocket;
     let state: string = '🟠';
     onMount(() => {
@@ -7,52 +9,11 @@
         socket.onmessage = function (event) {
             try {
                 let data = JSON.parse(event.data);
-                if (data.type === 'accelerometer') {
-                    console.log(data.accelerometer);
+                if (data.type === 'pos-rot-vect'){
+                    rotation_vector.set([data.rotation.x, data.rotation.y, data.rotation.z]);
+                    position_vector.set([data.position.x, data.position.y, data.position.z]);
                 }
-                else if (data.type === 'gyroscope') {
-                    console.log(data.gyroscope);
-                }
-                else if (data.type === 'rotation') {
-                    console.log(data.rotation);
-                }
-                else if (data.type === 'quaternion') {
-                    console.log(data.quaternion);
-                }
-                else if (data.type === 'euler') {
-                    console.log(data.euler);
-                }
-                else if (data.type === 'matrix') {
-                    console.log(data.matrix);
-                }
-                else if (data.type === 'quaternion') {
-                    console.log(data.quaternion);
-                }
-                else if (data.type === 'quaternion') {
-                    console.log(data.quaternion);
-                }
-                else if (data.type === 'quaternion') {
-                    console.log(data.quaternion);
-                }
-                else if (data.type === 'quaternion') {
-                    console.log(data.quaternion);
-                }
-                else if (data.type === 'quaternion') {
-                    console.log(data.quaternion);
-                }
-                else if (data.type === 'quaternion') {
-                    console.log(data.quaternion);
-                }
-                else if (data.type === 'quaternion') {
-                    console.log(data.quaternion);
-                }
-                else if (data.type === 'quaternion') {
-                    console.log(data.quaternion);
-                }
-                else {
-                    console.log(data);
-                }
-                alert('success');
+                // alert('success');
             } catch (error) {
                 alert(error);
                 alert(event.data);

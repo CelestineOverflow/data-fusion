@@ -43,6 +43,7 @@ def listen():
             data, addr = s.recvfrom(bufferSize)
             data = data.decode('utf-8')
             data = json.loads(data)
+            d["type"] = "pos-rot-vect"
             d["id"] = data["id"]
             d["position"]["x"] = data["accelerometer"]["x"]
             d["position"]["y"] = data["accelerometer"]["y"]

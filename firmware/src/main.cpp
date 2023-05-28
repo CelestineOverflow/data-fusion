@@ -14,7 +14,7 @@ void setup()
 
 void loop()
 {
-  print_bmi160();
+  // print_bmi160();
   send_bmi_data(send_data);
-  delay(1000);
+  // delay(1000);
 }
