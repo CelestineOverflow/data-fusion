@@ -55,29 +55,9 @@
         animate();
     });
 
-    // let data: any;
-    // async function get() {
-    //     const response = await fetch("http://localhost:8000/get");
-    //     const json = await response.json();
-    //     console.log(json);
-    //     data = JSON.stringify(json);
-    // }
-    // async function randomCubeRotation() {
-    //     const response = await fetch("http://localhost:8000/get");
-    //     const json = await response.json();
-    //     //structure
-    //     // {"id":0,"accelerometer":{"x":0,"y":-0.08,"z":1.04},"gyroscope":{"x":0,"y":-0.12,"z":0.1}}
-    //     cube.rotation.x = json.rotation.x;
-    //     cube.rotation.y = json.rotation.y;
-    //     cube.rotation.z = json.rotation.z;
-    // }
 </script>
 
 <h1>cube</h1>
 <h2>rotation_vector_value: {rotation_vector_value}</h2>
 <h2>position_vector_value: {position_vector_value}</h2>
 <canvas bind:this={canvas} width="500" height="500" />
-<!-- <button on:click={get}>get</button>
-<p>{data}</p>
-
-<button on:click={randomCubeRotation}>randomCubeRotation</button> -->

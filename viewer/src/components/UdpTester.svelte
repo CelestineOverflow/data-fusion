@@ -1,9 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { rotation_vector, position_vector} from '../stores/vectors.js';
-
+    import { state } from '../stores/server_stats.js';
     let socket: WebSocket;
-    let state: string = '🟠';
     onMount(() => {
         socket = new WebSocket('ws://localhost:8000/ws');
         socket.onmessage = function (event) {
@@ -13,7 +12,6 @@
                     rotation_vector.set([data.rotation.x, data.rotation.y, data.rotation.z]);
                     position_vector.set([data.position.x, data.position.y, data.position.z]);
                 }
-                // alert('success');
             } catch (error) {
                 alert(error);
                 alert(event.data);
@@ -21,16 +19,13 @@
             
         };
         socket.onopen = function (event) {
-            state = '🟢';
+            state.set('🟢');
         };
         socket.onclose = function (event) {
-            state = '🔴';
-            // setTimeout(() => {
-            //     socket = new WebSocket('ws://localhost:8000/ws');
-            // }, 1000);
+            state.set('🔴');
         };
         socket.onerror = function (event) {
-            state = '🚩';
+            state.set('🚩');
             console.log(event);
         };
     });
@@ -44,6 +39,5 @@
         }
     }
 </script>
-<h1>api server state {state}</h1>
 <button on:click={() => send('Hello')}>Send</button>
 

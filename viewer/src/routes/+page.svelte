@@ -1,13 +1,11 @@
 <script lang="ts">
-	import Cube from "../components/Cube.svelte";
+    import Cube from "../components/Cube.svelte";
+    import Gtlf from "../components/Gtlf.svelte";
+    import Navbar from "../components/Navbar.svelte";
     import UdpTester from "../components/UdpTester.svelte";
 </script>
 
-<h1>Welcome to SvelteKit</h1>
-<p>
-    Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation
-</p>
-
+<Navbar />
 <UdpTester />
-<Cube />
+<Gtlf />
 
