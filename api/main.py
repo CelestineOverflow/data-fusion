@@ -1,4 +1,6 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Response
+import io
+from fastapi.responses import StreamingResponse
 import socket
 import threading
 import queue
@@ -7,6 +9,7 @@ import json
 import random
 import time
 import asyncio
+import cv2
 
 # allow all bulshit origin idgaf
 
@@ -77,8 +80,20 @@ async def get():
             return data
         except:
             return {"error": "data error from microcontroller"}
-        
-        
+
+camera_id = 0
+cap = cv2.VideoCapture(camera_id)
+@app.get("/get_image")
+async def get_image(camera_id: int):
+    if not camera_id == globals()["camera_id"]:
+        globals()["camera_id"] = camera_id
+        globals()["cap"] = cv2.VideoCapture(camera_id)
+    cap = cv2.VideoCapture(globals()["camera_id"])
+    ret, frame = cap.read()
+    if ret:
+        im_png = cv2.imencode(".png", frame)[1]
+        return StreamingResponse(io.BytesIO(im_png.tobytes()), media_type="image/png")
+
 #websockets
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

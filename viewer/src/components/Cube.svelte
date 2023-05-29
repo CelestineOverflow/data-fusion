@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
     //D:\data-fusion\viewer\node_modules\three
     import * as THREE from "three";
     import { onMount } from "svelte";
@@ -60,4 +60,4 @@
 <h1>cube</h1>
 <h2>rotation_vector_value: {rotation_vector_value}</h2>
 <h2>position_vector_value: {position_vector_value}</h2>
-<canvas bind:this={canvas} width="500" height="500" />
+<canvas bind:this={canvas} width="500" height="500" /> -->

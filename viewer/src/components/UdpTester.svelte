@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { rotation_vector, position_vector} from '../stores/vectors.js';
+    import { rotation_vector_0, position_vector_0, rotation_vector_1, position_vector_1} from '../stores/vectors.js';
     import { state } from '../stores/server_stats.js';
     let socket: WebSocket;
     onMount(() => {
@@ -9,8 +9,14 @@
             try {
                 let data = JSON.parse(event.data);
                 if (data.type === 'pos-rot-vect'){
-                    rotation_vector.set([data.rotation.x, data.rotation.y, data.rotation.z]);
-                    position_vector.set([data.position.x, data.position.y, data.position.z]);
+                    if (data.id === 0){
+                        rotation_vector_0.set(data.rot);
+                        position_vector_0.set(data.pos);
+                    }
+                    else if (data.id === 1){
+                        rotation_vector_1.set(data.rot);
+                        position_vector_1.set(data.pos);
+                    }
                 }
             } catch (error) {
                 alert(error);

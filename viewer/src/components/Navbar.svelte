@@ -8,7 +8,8 @@
 
 <nav class="navbar navbar-expand-lg bg-body-tertiary" data-bs-theme="dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="www.google.com">Motion Fusion <span class="badge bg-success">Alpha!</span></a>
+        <!-- <img src="banner.png" alt="logo" style="width: 30px; height: 30px;" /> -->
+        <a class="navbar-brand" href="www.google.com">🥽 Motion Fusion <span class="badge bg-success">Alpha!</span></a>
         <button
             class="navbar-toggler"
             type="button"

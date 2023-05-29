@@ -16,5 +16,6 @@ void loop()
 {
   // print_bmi160();
   send_bmi_data(send_data);
-  // delay(1000);
 }
+
+

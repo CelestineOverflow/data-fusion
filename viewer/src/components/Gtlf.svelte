@@ -6,7 +6,7 @@
     import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper.js";
     import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
     import { onMount } from "svelte";
-    import { rotation_vector, position_vector } from "../stores/vectors.js";
+    import { rotation_vector_0, position_vector_0, rotation_vector_1, position_vector_1 } from "../stores/vectors";
     let rotation_vector_value: number[] = [0, 0, 0];
     let position_vector_value: number[] = [0, 0, 0];
 
@@ -77,6 +77,9 @@
             // called when the resource is loaded
             function (gltf) {
                 fritz_cola = gltf.scene;
+                //scale fritz-cola
+                fritz_cola.scale.set(0.5, 0.5, 0.5);
+                fritz_cola.rotation.y = Math.PI / 2;
                 scene.add(fritz_cola);
                 console.log("fritz-cola loaded");
             },
@@ -89,15 +92,35 @@
                 console.error("An error happened", error);
             }
         );
+        //companion cube
+        let companion_cube = new THREE.Object3D();
+        loader.load(
+            // resource URL
+            "companion_cube.gltf",
+            // called when the resource is loaded
+            function (gltf) {
+                companion_cube = gltf.scene;
+                //move companion cube 5m to the right
+                companion_cube.position.x = 2;
+                scene.add(companion_cube);
+                console.log("companion-cube loaded");
+            },
+            // called while loading is progressing
+            function (xhr) {
+                console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+            },
+            // called when loading has errors
+            function (error) {
+                console.error("An error happened", error);
+            }
+        );
+
+        //move companion cube 1m to the right
+        
 
         //add light
         const light = new THREE.AmbientLight(0xFFFFFF, 1);
         scene.add(light);
-
-
-        
-        // ö
-
         camera.position.z = 5;
 
         const animate = function () {
@@ -111,23 +134,29 @@
             controls.update();
         };
 
-        rotation_vector.subscribe((value) => {
+        rotation_vector_0.subscribe((value) => {
             fritz_cola.rotation.x = value[0];
             fritz_cola.rotation.y = value[1];
             fritz_cola.rotation.z = value[2];
-            cube.rotation.x = value[0];
-            cube.rotation.y = value[1];
-            cube.rotation.z = value[2];
             rotation_vector_value = value;
         });
-        position_vector.subscribe((value) => {
+        position_vector_0.subscribe((value) => {
             fritz_cola.position.x = value[0];
             fritz_cola.position.y = value[1];
             fritz_cola.position.z = value[2];
-            cube.position.x = value[0];
-            cube.position.y = value[1];
-            cube.position.z = value[2];
             position_vector_value = value;
+        });
+
+        rotation_vector_1.subscribe((value) => {
+            companion_cube.rotation.x = value[0];
+            companion_cube.rotation.y = value[1];
+            companion_cube.rotation.z = value[2];
+        });
+
+        position_vector_1.subscribe((value) => {
+            companion_cube.position.x = value[0];
+            companion_cube.position.y = value[1];
+            companion_cube.position.z = value[2];
         });
 
         animate();
@@ -142,7 +171,7 @@
 
 <style>
     canvas {
-        width: 90wh;
-        height: 70vh;
+        width: 500px;
+        height: 500px;
     }
 </style>
