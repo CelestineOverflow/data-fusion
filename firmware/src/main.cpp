@@ -9,12 +9,13 @@ void setup()
   init_wifi();
   init_bmi160();
   selftestsweepthruleds();
-  Serial.println("sending data");
+  find_udp_server();
 }
 
 void loop()
 {
-  // print_bmi160();
+  print_bmi160();
+  delay(100);	
   send_bmi_data(send_data);
 }
 

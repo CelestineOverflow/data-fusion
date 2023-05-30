@@ -9,13 +9,13 @@ import json
 import random
 import time
 import asyncio
-import cv2
+import utils.mdns_registered as mdns_registered
+from zeroconf import ServiceInfo, Zeroconf
 
-# allow all bulshit origin idgaf
-
-
-localIP = '192.168.31.242'
+local_network_ip=mdns_registered.get_local_ip()
 port = 1337
+
+
 bufferSize = 1024
 q = queue.Queue(10)
 app = FastAPI()
@@ -28,15 +28,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def register_service(ip, port):
+    z = Zeroconf()
+    mdns_registered.register_service(z, local_network_ip, port)
+    print("UDP server IP address: " + local_network_ip + ":" + str(port))
 
 def listen():
-    global localIP
+    global local_network_ip
     global port
     global bufferSize
     global q
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0.1)
-    s.bind((localIP, port))
+    s.bind((local_network_ip, port))
     start_t = time.time()
     print("UDP server up and listening")
     d = {"id":0,"position":{"x":0,"y":-0.08,"z":1.04},"rotation":{"x":0,"y":-0.12,"z":0.1}}
@@ -46,16 +50,32 @@ def listen():
             data, addr = s.recvfrom(bufferSize)
             data = data.decode('utf-8')
             data = json.loads(data)
-            d["type"] = "pos-rot-vect"
-            d["id"] = data["id"]
-            d["position"]["x"] = data["accelerometer"]["x"]
-            d["position"]["y"] = data["accelerometer"]["y"]
-            d["position"]["z"] = data["accelerometer"]["z"] 
-            d["rotation"]["x"] = data["gyroscope"]["x"] * delta_t
-            d["rotation"]["y"] = data["gyroscope"]["y"] * delta_t
-            d["rotation"]["z"] = data["gyroscope"]["z"] * delta_t
-            q.put(json.dumps(d))
-            start_t = time.time()
+            print(data)
+            if "accelerometer" in data and "gyroscope" in data: #data from imu
+                d["type"] = "pos-rot-vect"
+                d["id"] = data["id"]
+                d["position"]["x"] = data["accelerometer"]["x"]
+                d["position"]["y"] = data["accelerometer"]["y"]
+                d["position"]["z"] = data["accelerometer"]["z"] 
+                d["rotation"]["x"] = data["gyroscope"]["x"] * delta_t
+                d["rotation"]["y"] = data["gyroscope"]["y"] * delta_t
+                d["rotation"]["z"] = data["gyroscope"]["z"] * delta_t
+                q.put(json.dumps(d))
+                start_t = time.time()
+            if "position" in data and "rotation" in data: #data from camera
+                d["type"] = "pos-rot-vect"
+                d["id"] = data["id"]
+                d["position"]["x"] = data["position"]["x"]
+                d["position"]["y"] = data["position"]["y"]
+                d["position"]["z"] = data["position"]["z"] 
+                d["rotation"]["x"] = data["rotation"]["x"] 
+                d["rotation"]["y"] = data["rotation"]["y"] 
+                d["rotation"]["z"] = data["rotation"]["z"] 
+                q.put(json.dumps(d))
+                start_t = time.time()
+            else:
+                #just send back the data
+                q.put(json.dumps(data))
         except socket.timeout:
             pass
 
@@ -64,6 +84,9 @@ def listen():
 async def root():
     return {"message": "Hello World"}
 
+t0 = threading.Thread(target=register_service, args=(local_network_ip, port))
+t0.start()
+time.sleep(5)
 t = threading.Thread(target=listen)
 t.start()
 
@@ -81,20 +104,7 @@ async def get():
         except:
             return {"error": "data error from microcontroller"}
 
-camera_id = 0
-cap = cv2.VideoCapture(camera_id)
-@app.get("/get_image")
-async def get_image(camera_id: int):
-    if not camera_id == globals()["camera_id"]:
-        globals()["camera_id"] = camera_id
-        globals()["cap"] = cv2.VideoCapture(camera_id)
-    cap = cv2.VideoCapture(globals()["camera_id"])
-    ret, frame = cap.read()
-    if ret:
-        im_png = cv2.imencode(".png", frame)[1]
-        return StreamingResponse(io.BytesIO(im_png.tobytes()), media_type="image/png")
 
-#websockets
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()

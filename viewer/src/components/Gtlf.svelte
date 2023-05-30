@@ -138,26 +138,27 @@
             fritz_cola.rotation.x = value[0];
             fritz_cola.rotation.y = value[1];
             fritz_cola.rotation.z = value[2];
-            rotation_vector_value = value;
+            rotation_vector_value = [value[0], value[1], value[2]];
         });
-        position_vector_0.subscribe((value) => {
-            fritz_cola.position.x = value[0];
-            fritz_cola.position.y = value[1];
-            fritz_cola.position.z = value[2];
-            position_vector_value = value;
-        });
+        // position_vector_0.subscribe((value) => {
+        //     fritz_cola.position.x = value[0];
+        //     fritz_cola.position.y = value[1];
+        //     fritz_cola.position.z = value[2];
+        //     position_vector_value = value;
+        // });
 
         rotation_vector_1.subscribe((value) => {
             companion_cube.rotation.x = value[0];
             companion_cube.rotation.y = value[1];
             companion_cube.rotation.z = value[2];
+            rotation_vector_value = [value[0], value[1], value[2]];
         });
 
-        position_vector_1.subscribe((value) => {
-            companion_cube.position.x = value[0];
-            companion_cube.position.y = value[1];
-            companion_cube.position.z = value[2];
-        });
+        // position_vector_1.subscribe((value) => {
+        //     companion_cube.position.x = value[0];
+        //     companion_cube.position.y = value[1];
+        //     companion_cube.position.z = value[2];
+        // });
 
         animate();
     });
