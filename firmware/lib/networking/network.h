@@ -4,8 +4,8 @@
 #include <WiFiUdp.h>
 #include <ESP8266mDNS.h>
 
-static String ssid = "yourssid";
-static String password = "yourpassword";
+static String ssid = "Martin Router King";
+static String password = "aezakmiQ1";
 static WiFiUDP udp;
 static IPAddress udp_server;
 static int udp_port = 5000;
@@ -20,8 +20,9 @@ int init_wifi()
         Serial.print(".");
         if (millis() > timeout)
         {
-            Serial.println("Timeout");
-            // wait_for_new_credentials();
+            Serial.println("Could not connect to WiFi");
+            delay(3000);
+            return -1;
         }
     }
     Serial.println("");

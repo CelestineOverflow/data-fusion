@@ -117,6 +117,99 @@ The first the columns are the gyroscope data and the last three columns are the 
 | -0.02 | -0.14 | 0.14  | 0.24  | -0.81 | -0.53 |
 
 The IMU data for each of the gyroscopes is in degrees per second and the accelerometer data is in g's. 
+
+### Wifi Setup
+
+To enable the wifi on the microcontroller, you will need to uncomment the following lines in the `main.cpp` file:
+
+```cpp
+#include <Arduino.h>
+#include "network.h"
+#include "leds.h"
+#include "bmiutils.h"
+void setup()
+{
+  Serial.begin(115200);
+  init_wifi();
+  init_bmi160();
+}
+
+void loop()
+{
+  print_bmi160();
+}
+```
+
+you can hardcode the wifi credentials in the `network.h` file:
+
+```cpp
+static String ssid = "yourssid";
+static String password = "yourpassword"
+```
+
+		TODO: add password set up dinamically through serial.
+
+![Alt text](image-8.png)
+
+### Activate API server
+
+To comunicate freely with any application within the local network a udp server api handles the data exchange within the microcontroller and whichever application you want to use, in the future the data fusion between the microcontroller and the apriltags will be done in this api, for the api we are using FastAPI, a python framework for building apis.
+
+To install the dependencies for the api, you will need to install the requirements.txt file:
+
+```bash	
+cd api
+pip install -r requirements.txt
+```
+
+Once the dependencies have been installed, you can run the api server with the following command:
+
+```bash
+uvicorn main:app --reload
+```
+
+or 
+
+```bash
+python -m uvicorn main:app --reload
+```
+
+After running the command, you should see the following output:
+
+![Alt text](image-9.png)
+
+To connect your microcontroller the API server, you will need to uncomment the following lines in the `main.cpp` file:
+
+```cpp
+#include <Arduino.h>
+#include "network.h"
+#include "leds.h"
+#include "bmiutils.h"
+void setup()
+{
+  Serial.begin(115200);
+  init_wifi();
+  init_bmi160();
+  find_udp_server();
+}
+
+void loop()
+{
+  print_bmi160();
+  send_bmi_data(send_data);
+}
+```
+If the mDNS server is running, the microcontroller will find the API server and connect to it thru UDP, you should see the following output in the serial monitor:
+
+![Alt text](image-10.png)
+
+To check the data you can go to the following url:
+
+[http://localhost:8000/docs](http://localhost:8000/docs)
+
+![Alt text](image-11.png)
+
+You can test methods declared declared on the `main.py`.
 <!-- ## Sveltekit Setup
 
 for visualization we will be using sveltekit, you will need nodejs to run it:
