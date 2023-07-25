@@ -1,0 +1,19 @@
+- include
+	- README
+- lib
+	- bmi160
+		- bmiutils.h
+	- leds
+		- leds.c
+		- leds.h
+	- networking
+		- network.h
+	- test-lib
+		- aheader.h
+	- README
+- src
+	- main.cpp
+- test
+	- README
+- .gitignore
+- platformio.ini

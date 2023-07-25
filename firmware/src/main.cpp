@@ -1,22 +1,20 @@
 #include <Arduino.h>
-#include "aheader.h"
 #include "network.h"
 #include "leds.h"
 #include "bmiutils.h"
 void setup()
 {
   Serial.begin(115200);
-  init_wifi();
+  // init_wifi();
   init_bmi160();
-  selftestsweepthruleds();
-  find_udp_server();
+  //selftestsweepthruleds();
+  //find_udp_server();
 }
 
 void loop()
 {
   print_bmi160();
-  delay(100);	
-  send_bmi_data(send_data);
+  //send_bmi_data(send_data);
 }
 
 

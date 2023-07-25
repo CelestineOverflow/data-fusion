@@ -96,7 +96,7 @@
         let companion_cube = new THREE.Object3D();
         loader.load(
             // resource URL
-            "companion_cube.gltf",
+            "companion_cube3.gltf",
             // called when the resource is loaded
             function (gltf) {
                 companion_cube = gltf.scene;

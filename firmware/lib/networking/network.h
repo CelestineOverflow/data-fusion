@@ -4,8 +4,8 @@
 #include <WiFiUdp.h>
 #include <ESP8266mDNS.h>
 
-static String ssid = "Martin Router King";
-static String password = "aezakmiQ1";
+static String ssid = "yourssid";
+static String password = "yourpassword";
 static WiFiUDP udp;
 static IPAddress udp_server;
 static int udp_port = 5000;
