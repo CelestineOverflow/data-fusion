@@ -162,6 +162,12 @@ cd api
 pip install -r requirements.txt
 ```
 
+To install the dependancies for fast api make use of the following command:
+
+```bash
+pip install "fastapi[all]"
+```
+
 Once the dependencies have been installed, you can run the api server with the following command:
 
 ```bash
