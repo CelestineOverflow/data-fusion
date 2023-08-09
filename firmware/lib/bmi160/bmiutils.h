@@ -4,7 +4,6 @@
 static DFRobot_BMI160 bmi160;
 static const int8_t i2c_addr = 0x68;
 
-
 static int16_t offset_bmi160[6] = {0, 0, 0, 0, 0, 0};
 
 static void calibrate_bmi(int16_t *accelGyro)
@@ -54,33 +53,66 @@ void init_bmi160()
   Serial.println("init bmi160 done");
 }
 
-void print_bmi160()
+
+
+#define SEND_AS_DEGREES 1
+
+static float roll = 0.0;
+static float pitch = 0.0;
+static float yaw = 0.0;
+static float roll_cal = 0.0;
+static float pitch_cal = 0.0;
+static float yaw_cal = 0.0;
+static long last_time = 0;
+#if SEND_AS_DEGREES
+static String unit = "deg/s";
+#else
+static String unit = "rad/s";
+#endif
+
+static void integrate_data()
 {
-  int i = 0;
   int rslt;
   int16_t accelGyro[6] = {0};
+  float dt;
+  long current_time = millis();
+  if (last_time == 0)
+  {
+    dt = 0.01; // initial guess
+  }
+  else
+  {
+    dt = (current_time - last_time) / 1000.0; // convert to seconds
+  }
 
-  // get both accel and gyro data from bmi160
-  // parameter accelGyro is the pointer to store the data
   rslt = bmi160.getAccelGyroData(accelGyro);
   if (rslt == 0)
   {
-    for (i = 0; i < 6; i++)
-    {
-      if (i < 3)
-      {
-        // the first three are gyro data
-        Serial.print(accelGyro[i] * 3.14 / 180.0);
-        Serial.print("\t");
-      }
-      else
-      {
-        // the following three data are accel data
-        Serial.print(accelGyro[i] / 16384.0);
-        Serial.print("\t");
-      }
-    }
-    Serial.println();
+    float gyro_rate_x = accelGyro[0] * 3.14 / 180.0; // Convert to rad/s
+    float gyro_rate_y = accelGyro[1] * 3.14 / 180.0;
+    float gyro_rate_z = accelGyro[2] * 3.14 / 180.0;
+
+    float accel_x = accelGyro[3] / 16384.0;
+    float accel_y = accelGyro[4] / 16384.0;
+    float accel_z = accelGyro[5] / 16384.0;
+
+    float accel_pitch = atan2(accel_y, sqrt(accel_x * accel_x + accel_z * accel_z));
+    float accel_roll = atan2(-accel_x, accel_z);
+
+    pitch = 0.98 * (pitch + gyro_rate_x * dt) + 0.02 * accel_pitch;
+    roll = 0.98 * (roll + gyro_rate_y * dt) + 0.02 * accel_roll;
+    yaw = yaw + gyro_rate_z * dt;
+
+#if SEND_AS_DEGREES
+    pitch_cal = pitch * 180.0 / 3.14;
+    roll_cal = roll * 180.0 / 3.14;
+    yaw_cal = yaw * 180.0 / 3.14;
+#else
+    pitch_cal = pitch;
+    roll_cal = roll;
+    yaw_cal = yaw;
+#endif
+    last_time = current_time;
   }
   else
   {
@@ -88,47 +120,33 @@ void print_bmi160()
   }
 }
 
-float delta_t = 0.0;
 
-// send data to function pointer
-//  structure
-//  "id" : 0,
-//  "accelerometer": {
-//      "x": 0,
-//      "y": 0,
-//      "z": 0
-//  },
-//  "gyroscope": {
-//      "x": 0,
-//      "y": 0,
-//      "z": 0
-//  }
+
 void send_bmi_data(int (*send_data)(String))
 {
-  int i = 0;
-  int rslt;
-  int16_t accelGyro[6] = {0};
-  rslt = bmi160.getAccelGyroData(accelGyro);
-  if (rslt == 0)
-  {
-    String data = "{";
-    data += "\"id\": 0,";
-    data += "\"accelerometer\": {";
-    data += "\"x\": " + String(accelGyro[3] / 16384.0) + ",";
-    data += "\"y\": " + String(accelGyro[4] / 16384.0) + ",";
-    data += "\"z\": " + String(accelGyro[5] / 16384.0);
-    data += "},";
-    data += "\"gyroscope\": {";
-    data += "\"x\": " + String(accelGyro[0]) + ",";
-    data += "\"y\": " + String(accelGyro[1]) + ",";
-    data += "\"z\": " + String(accelGyro[2]);
-    data += "}";
-    data += "}";
-    send_data(data);
-  }
-  else
-  {
-    Serial.println("err");
-  }
+  integrate_data();
+  String data = "{";
+  data += "\"id\": 0,";
+  data += "\"orientation\": {";
+  data += "\"pitch\": " + String(pitch_cal) + ",";
+  data += "\"roll\": " + String(roll_cal) + ",";
+  data += "\"yaw\": " + String(yaw_cal) + ",";
+  data += "\"unit\": \"" + unit + "\"";
+  data += "}";
+  data += "}";
+
+  send_data(data);
 }
 
+void print_bmi160()
+{
+  integrate_data();
+  Serial.print("Pitch: ");
+  Serial.print(pitch_cal);
+  Serial.print(" Roll: ");
+  Serial.print(roll_cal);
+  Serial.print(" Yaw: ");
+  Serial.print(yaw_cal);
+  Serial.print(" ");
+  Serial.println(unit);
+}

@@ -69,7 +69,7 @@ def listen():
 
 @app.get("/")
 async def root():
-    return {"message": "Hello there you beautiful person!"}
+    return {"message": "Hello there you beautiful person!, go to /docs for the api documentation"}
 
 t0 = threading.Thread(target=register_service, args=(local_network_ip, port))
 t0.start()
@@ -101,7 +101,6 @@ async def websocket_endpoint(websocket: WebSocket):
         # #send json response
         # await websocket.send_text(json.dumps({"message": "Hello WebSocket"}))
         if q.empty():
-            #asynchronous sleep
             await asyncio.sleep(0.01)
         else:
             try:
