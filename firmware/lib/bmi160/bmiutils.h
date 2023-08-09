@@ -82,7 +82,7 @@ static void integrate_data()
   }
   else
   {
-    dt = (current_time - last_time) / 1000.0; // convert to seconds
+    dt = (current_time - last_time) / 10000.0; // convert to seconds
   }
 
   rslt = bmi160.getAccelGyroData(accelGyro);
