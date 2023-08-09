@@ -41,16 +41,16 @@ void setup()
   // cmd.echo(true);                                 //Echo incoming characters to theoutput port
   // Serial.println("Hello: Type 'help' to get help");
   // cmd.printCommandPrompt();
-  // init_wifi();
+  init_wifi();
   init_bmi160();
-  // find_udp_server();
+  find_udp_server();
 }
 
 void loop()
 {
   // cmd.update();
   print_bmi160();
-  // send_bmi_data(send_data);
+  send_bmi_data(send_data);
 }
 
 

@@ -55,7 +55,7 @@ void init_bmi160()
 
 
 
-#define SEND_AS_DEGREES 1
+#define SEND_AS_DEGREES 0
 
 static float roll = 0.0;
 static float pitch = 0.0;

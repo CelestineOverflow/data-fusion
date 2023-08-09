@@ -37,43 +37,27 @@
             try {
                 let data = JSON.parse(event.data);
                 // console.log(data);
-                raw_data.set(data);
-                //Raw data: Raw data: {"id":0,"accelerometer":{"x":0.35,"y":0.48,"z":0.89},"gyroscope":{"x":-242,"y":-248,"z":161},"type":"accelerometer-gyroscope-vector"}
-                if (data.type === "accelerometer-gyroscope-vector") {
-                    delta_time = Date.now() - last_time;
-                    last_time = Date.now();
-                    if (data.id === 0) {
-                        delta_time = (Date.now() - last_time) / 1000;
-                        last_time = Date.now();
-                        let accelerometer = [
-                            data.accelerometer.x,
-                            data.accelerometer.y,
-                            data.accelerometer.z,
-                        ];
-                        let gyroscope = [
-                            data.gyroscope.x,
-                            data.gyroscope.y,
-                            data.gyroscope.z,
-                        ];
-
-                        let orientation = sensorFusion.updateOrientation(
-                            accelerometer[0],
-                            accelerometer[1],
-                            accelerometer[2],
-                            gyroscope[0],
-                            gyroscope[1],
-                            gyroscope[2],
-                            delta_time
-                        );
-
-                        rotation_vector_0.set([
-                            orientation.roll,
-                            orientation.pitch,
-                            orientation.yaw,
+                // {pitch: -0.68, roll: 0.52, yaw: -0.86, unit: 'rad/s'}
+                rotation_vector_0.set([
+                            data.orientation.pitch,
+                            data.orientation.pitch,
+                            data.orientation.yaw,
                         ]);
-                        console.log(orientation);
-                    }
-                }
+                    //     console.log(orientation);
+                    // }
+                raw_data.set(data);
+                // //Raw data: Raw data: {"id":0,"accelerometer":{"x":0.35,"y":0.48,"z":0.89},"gyroscope":{"x":-242,"y":-248,"z":161},"type":"accelerometer-gyroscope-vector"}
+                // if (data.type === "accelerometer-gyroscope-vector") {
+                //     // if (data.id === 0) {
+
+                //     //     rotation_vector_0.set([
+                //     //         orientation.roll,
+                //     //         orientation.pitch,
+                //     //         orientation.yaw,
+                //     //     ]);
+                //     //     console.log(orientation);
+                //     // }
+                // }
             } catch (error) {
                 console.log(event.data);
                 console.log(error);

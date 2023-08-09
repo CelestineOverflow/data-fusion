@@ -10,7 +10,7 @@ import socket
 data = {"id":1,"position":{"x":0,"y":-0.08,"z":1.04},"rotation":{"x":0,"y":-0.12,"z":0.1}}
 
 import utils.mdns_registered as mdns
-local_network_ip = mdns.get_local_ip()
+local_network_ip = 'localhost'
 port = 1337
 
 def send_data(data):
@@ -81,5 +81,5 @@ def live_feed(camera_id, mtx, dist):
 if __name__ == "__main__":
     #do unthreaded version
     mtx, dist = load_calibration_file(r'calibration_data.json')
-    live_feed(2, mtx, dist)
+    live_feed(0, mtx, dist)
     

@@ -4,8 +4,8 @@
 #include <WiFiUdp.h>
 #include <ESP8266mDNS.h>
 
-static String ssid = "Martin Router King";
-static String password = "aezakmiQ1";
+static String ssid = "TP-Link_D938";
+static String password = "61882218";
 static WiFiUDP udp;
 static IPAddress udp_server;
 static int udp_port = 5000;
@@ -160,4 +160,3 @@ int send_data(String data)
     udp.endPacket();
     return 0;
 }
-

@@ -126,15 +126,16 @@
         const animate = function () {
             requestAnimationFrame(animate);
 
-            // cube.rotation.x += 0.01;
+            // cube.rotation.x += 0.1;
             // cube.rotation.y += 0.01;
-
+            // companion_cube.rotation.x += 0.1;
             renderer.render(scene, camera);
             //controls
             controls.update();
         };
 
         rotation_vector_0.subscribe((value) => {
+            console.log(value);
             fritz_cola.rotation.x = value[0];
             fritz_cola.rotation.y = value[1];
             fritz_cola.rotation.z = value[2];

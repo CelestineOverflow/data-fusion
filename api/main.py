@@ -49,7 +49,7 @@ def listen():
             data, addr = s.recvfrom(bufferSize)
             data = data.decode('utf-8')
             data = json.loads(data)
-            print(data)
+            # print(data)
             if "accelerometer" in data and "gyroscope" in data: #data from imu
                 d["type"] = "accelerometer-gyroscope-vector"
                 d["id"] = data["id"]
