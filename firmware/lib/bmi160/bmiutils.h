@@ -82,16 +82,18 @@ static void integrate_data()
   }
   else
   {
-    dt = (current_time - last_time) / 10000.0; // convert to seconds
+    dt = (current_time - last_time) / 1000.0; // convert to seconds, i fuck up the scaling by 10?
   }
 
   rslt = bmi160.getAccelGyroData(accelGyro);
   if (rslt == 0)
   {
-    float gyro_rate_x = accelGyro[0] * 3.14 / 180.0; // Convert to rad/s
+    float gyro_rate_x = accelGyro[0] * 3.14 / 180.0;
     float gyro_rate_y = accelGyro[1] * 3.14 / 180.0;
     float gyro_rate_z = accelGyro[2] * 3.14 / 180.0;
-
+    gyro_rate_x /= 10.0;
+    gyro_rate_y /= 10.0;
+    gyro_rate_z /= 10.0;
     float accel_x = accelGyro[3] / 16384.0;
     float accel_y = accelGyro[4] / 16384.0;
     float accel_z = accelGyro[5] / 16384.0;
