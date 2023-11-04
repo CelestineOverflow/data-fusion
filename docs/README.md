@@ -235,3 +235,7 @@ npm run dev
 npm install --save three 
 npm i --save-dev @types/three
 ``` -->
+
+# PCB Layout
+
+[https://oshwlab.com/celestine.s.machuca/motion-fusion](https://oshwlab.com/celestine.s.machuca/motion-fusion)
