@@ -6,12 +6,14 @@ import scipy as sp
 import json
 import threading
 import socket
+import argparse
 
 data = {"id":1,"position":{"x":0,"y":-0.08,"z":1.04},"rotation":{"x":0,"y":-0.12,"z":0.1}}
 
 import utils.mdns_registered as mdns
 local_network_ip = 'localhost'
 port = 1337
+asDegree = False
 
 def send_data(data):
     data = json.dumps(data)
@@ -36,8 +38,8 @@ def detector_superimpose(img, detector, mtx, dist, tag_size=0.16):
         pose_data = d.pose_R, d.pose_t
         rvec, tvec = pose_data[0], pose_data[1]
         quat = sp.spatial.transform.Rotation.from_matrix(rvec).as_quat()
-        euler = sp.spatial.transform.Rotation.from_matrix(rvec).as_euler('xyz', degrees=False)
-        x, y, z = euler[0], euler[1], euler[2]
+        rotation = sp.spatial.transform.Rotation.from_matrix(rvec).as_euler('xyz', degrees=asDegree)
+        x, y, z = rotation[0], rotation[1], rotation[2]
         tx, ty, tz = tvec[0][0], tvec[1][0], tvec[2][0]
         cv2.circle(img, (int(d.center[0]), int(d.center[1])), 5, (0, 0, 255), -1)
         cv2.putText(img, str(d.tag_id), (int(d.center[0]), int(d.center[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
@@ -45,9 +47,6 @@ def detector_superimpose(img, detector, mtx, dist, tag_size=0.16):
         cv2.putText(img, "x: " + str(round(x, 2)), (int(d.center[0]), int(d.center[1]) + 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         cv2.putText(img, "y: " + str(round(y, 2)), (int(d.center[0]), int(d.center[1]) + 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         cv2.putText(img, "z: " + str(round(z, 2)), (int(d.center[0]), int(d.center[1]) + 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        # print("tvex: ", tvec)
-        # #shape:  (3, 1)
-        # print("shape: ", tvec.shape)
         cv2.putText(img, "t x: " + str(round(tvec[0][0], 2)), (int(d.center[0]), int(d.center[1]) + 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         cv2.putText(img, "t y: " + str(round(tvec[1][0], 2)), (int(d.center[0]), int(d.center[1]) + 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         cv2.putText(img, "t z: " + str(round(tvec[2][0], 2)), (int(d.center[0]), int(d.center[1]) + 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
@@ -79,7 +78,13 @@ def live_feed(camera_id, mtx, dist):
     cv2.destroyAllWindows() 
 
 if __name__ == "__main__":
-    #do unthreaded version
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-c", "--camera", required=True, help="camera id")
+    ap.add_argument("-d", "--debug", required=False, help="debug mode")
+    ap.add_argument("-a", "--asDegree", required=False, help="debug mode")
+    args = vars(ap.parse_args())
+    camera_id = int(args["camera"])
+    asDegree = bool(args["asDegree"])
     mtx, dist = load_calibration_file(r'calibration_data.json')
-    live_feed(0, mtx, dist)
+    live_feed(camera_id, mtx, dist)
     

@@ -11,6 +11,16 @@ import time
 import asyncio
 import utils.mdns_registered as mdns_registered
 from zeroconf import ServiceInfo, Zeroconf
+from pythonosc.udp_client import SimpleUDPClient
+import socket
+
+
+#get ip in local network
+local_network_ip = socket.gethostbyname(socket.gethostname())
+print(local_network_ip)
+#setup osc client
+client = SimpleUDPClient(local_network_ip, 9000)
+
 
 local_network_ip=mdns_registered.get_local_ip()
 port = 1337
@@ -27,6 +37,82 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+osc_addresses = {
+    "head": {
+        "position": "/tracking/trackers/head/position",
+        "rotation": "/tracking/trackers/head/rotation"
+    },
+    "tracker1": {
+        "position": "/tracking/trackers/1/position",
+        "rotation": "/tracking/trackers/1/rotation"
+    },
+    "tracker2": {
+        "position": "/tracking/trackers/2/position",
+        "rotation": "/tracking/trackers/2/rotation"
+    },
+    "tracker3": {
+        "position": "/tracking/trackers/3/position",
+        "rotation": "/tracking/trackers/3/rotation"
+    },
+    "tracker4": {
+        "position": "/tracking/trackers/4/position",
+        "rotation": "/tracking/trackers/4/rotation"
+    },
+    "tracker5": {
+        "position": "/tracking/trackers/5/position",
+        "rotation": "/tracking/trackers/5/rotation"
+    },
+    "tracker6": {
+        "position": "/tracking/trackers/6/position",
+        "rotation": "/tracking/trackers/6/rotation"
+    },
+    "tracker7": {
+        "position": "/tracking/trackers/7/position",
+        "rotation": "/tracking/trackers/7/rotation"
+    },
+    "tracker8": {
+        "position": "/tracking/trackers/8/position",
+        "rotation": "/tracking/trackers/8/rotation"
+    }
+}
+
+class Vector3():
+    
+    def __init__(self, x: float, y: float, z: float):
+        """
+        Creates a Vector3 instance.
+        
+        Parameters:
+        x (float): X coordinate.
+        y (float): Y coordinate.
+        z (float): Z coordinate.
+        """
+        self.x = x
+        self.y = y
+        self.z = z
+        
+    def to_vector(self) -> tuple:
+        """
+        Returns a tuple of the vector coordinates.
+        """
+        return (self.x, self.y, self.z)
+    
+
+tracker_initial_pose = {
+    "head": {
+        "position": Vector3 (0.0, -0.1, -0.1),
+        "rotation": Vector3 (0.0, 0.0, 0.0)
+    },
+    "tracker1": {
+        "position": Vector3 (0.007038268726319075, -0.4179477095603943, -0.13543081283569336),
+        "rotation": Vector3 (6.355330944061279, 0.14127297699451447, 1.275995135307312)
+    }
+    
+}
+
+
 
 def register_service(ip, port):
     z = Zeroconf()
@@ -48,21 +134,28 @@ def listen():
         try:
             data, addr = s.recvfrom(bufferSize)
             data = data.decode('utf-8')
-            data = json.loads(data)
-            # print(data)
-            if "accelerometer" in data and "gyroscope" in data: #data from imu
-                d["type"] = "accelerometer-gyroscope-vector"
-                d["id"] = data["id"]
-                d["accelerometer"]["x"] = data["accelerometer"]["x"]
-                d["accelerometer"]["y"] = data["accelerometer"]["y"]
-                d["accelerometer"]["z"] = data["accelerometer"]["z"] 
-                d["gyroscope"]["x"] = data["gyroscope"]["x"]
-                d["gyroscope"]["y"] = data["gyroscope"]["y"]
-                d["gyroscope"]["z"] = data["gyroscope"]["z"]
-                q.put(json.dumps(d))
-            else:
-                #just send back the data
-                q.put(json.dumps(data))
+            print(data)
+            try:
+                parsed_data = json.loads(data)
+            
+                x = parsed_data["orientation"]["pitch"]
+                y = parsed_data["orientation"]["roll"]
+                z = parsed_data["orientation"]["yaw"]
+                #convert to float and degrees
+                x = float(x) * 180 / 3.141592653589793
+                y = float(y) * 180 / 3.141592653589793
+                z = float(z) * 180 / 3.141592653589793
+                
+                client.send_message(osc_addresses["head"]["position"], tracker_initial_pose["head"]["position"].to_vector())
+                client.send_message(osc_addresses["head"]["rotation"], tracker_initial_pose["head"]["rotation"].to_vector())
+                client.send_message(osc_addresses["tracker1"]["position"], tracker_initial_pose["tracker1"]["position"].to_vector())
+                client.send_message(osc_addresses["tracker1"]["rotation"], (x, y, z))
+                
+            except Exception as e:
+                print(e)
+                print("error parsing data")
+                continue
+            
         except socket.timeout:
             pass
 
@@ -96,10 +189,6 @@ async def get():
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     while True:
-        # data = await websocket.receive_text()
-        # # await websocket.send_text(f"Message text was: {data}")
-        # #send json response
-        # await websocket.send_text(json.dumps({"message": "Hello WebSocket"}))
         if q.empty():
             await asyncio.sleep(0.01)
         else:
