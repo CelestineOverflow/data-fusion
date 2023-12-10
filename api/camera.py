@@ -151,6 +151,9 @@ class Camera:
             data["rotation"]["x"] = x
             data["rotation"]["y"] = y
             data["rotation"]["z"] = z
+            
+        if len(detections) == 0:
+            return img, None
         return img, data
         
 

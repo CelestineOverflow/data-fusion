@@ -121,12 +121,26 @@ def register_service(ip, port):
     z = Zeroconf()
     mdns_registered.register_service(z, local_network_ip, port)
     print("UDP server IP address: " + local_network_ip + ":" + str(port))
+offset_sent = True
+
+def send_orientation_data(ip, port, pitch, roll, yaw):
+    message = f"{pitch},{roll},{yaw}"
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.sendto(message.encode(), (ip, port))
+        print(f"Sent: {message}")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        sock.close()
+
 
 def listen():
     global local_network_ip
     global port
     global bufferSize
     global q
+    global offset_sent
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0.1)
     s.bind((local_network_ip, port))
@@ -154,6 +168,17 @@ def listen():
                 client.send_message(osc_addresses["tracker1"]["position"], tracker_initial_pose["tracker1"]["position"].to_vector())
                 client.send_message(osc_addresses["tracker1"]["rotation"], (x, y, z))
                 q.put(data)
+                if not offset_sent:
+                    print("sending offset")
+                    #send rotation only from camera to mcu
+                    # s.sendto(json.dumps(latest_camera_data).encode('utf-8'), (addr[0], 4210))
+                    rotation = latest_camera_data["rotation"].copy()
+                    #convert to float and degrees
+                    rotation["x"] = float(rotation["x"]) * 180 / 3.141592653589793
+                    rotation["y"] = float(rotation["y"]) * 180 / 3.141592653589793
+                    rotation["z"] = float(rotation["z"]) * 180 / 3.141592653589793
+                    send_orientation_data(addr[0], 4210, rotation["x"], rotation["y"], rotation["z"])
+                    offset_sent = True
             except Exception as e:
                 print(e)
                 print("error parsing data")
@@ -203,6 +228,7 @@ async def websocket_endpoint(websocket: WebSocket):
     global q
     global latest_camera_data
     global latest_mcu_data
+    global offset_sent
     await websocket.accept()
     while True:
         if q.empty():
@@ -215,8 +241,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     latest_mcu_data = mcu_data
                 camera_data = camera.getData()
                 #if camera isnt empty
-                if camera_data:
+                if camera_data is not None:
                     latest_camera_data = camera_data
+                    offset_sent = False
                 #if both arent empty
                 await websocket.send_json({"camera": latest_camera_data, "mcu": latest_mcu_data})
                 

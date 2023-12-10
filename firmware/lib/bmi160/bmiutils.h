@@ -76,7 +76,7 @@ void integrateGyroData() {
     float gyroRateY = gy / gyroScaleFactor;
     float gyroRateZ = gz / gyroScaleFactor;
 
-    gyroX += gyroRateX * dt;
+    gyroX -= gyroRateX * dt;
     gyroY += gyroRateY * dt;
     gyroZ += gyroRateZ * dt;
 }
@@ -96,5 +96,11 @@ void sendBMIData(int (*sendData)(String)) {
     data += "\"unit\": \"" + unit + "\"";
     data += "}}";
     sendData(data);
-    printBMI160();
+    // printBMI160();
+}
+
+void setOrientation(float pitch, float roll, float yaw) {
+    gyroX = pitch;
+    gyroY = roll;
+    gyroZ = yaw;
 }

@@ -9,7 +9,7 @@
     import { onMount } from "svelte";
 
     let canvas: HTMLCanvasElement;
-
+    let isNewValue = false;
     import {raw_data } from "../stores/websocket";
     
     let pose = {
@@ -35,16 +35,20 @@
                 "x": 0,
                 "y": 0,
                 "z": 0
+            },
+            "offset": {
+                "x": 0,
+                "y": 0,
+                "z": 0
             }
         },
     }
+
 
     raw_data.subscribe((value) => {
         try {
 
             //Raw data: {"camera":{"id":19,"position":{"x":0.13985661012449555,"y":0.2898161857917122,"z":3.113400428397921},"rotation":{"x":0.03922555945961362,"y":0.05990199461313228,"z":0.08151047280510973}},"mcu":{"id":0,"orientation":{"pitch":-0.06,"roll":0,"yaw":-1.56,"unit":"rad/s"}}}
-
-
             pose.head.rotation.x = parseFloat(value.camera?.rotation?.x);
             pose.head.rotation.y = parseFloat(value.camera?.rotation?.y);
             pose.head.rotation.z = parseFloat(value.camera?.rotation?.z);
@@ -59,7 +63,9 @@
             pose.chest.rotation.x = pose.chest.rotation.x * (Math.PI / 180);
             pose.chest.rotation.y = pose.chest.rotation.y * (Math.PI / 180);
             pose.chest.rotation.z = pose.chest.rotation.z * (Math.PI / 180);
-            
+
+
+
 
         } catch (e) {
             console.log(e);
