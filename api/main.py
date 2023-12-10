@@ -123,8 +123,8 @@ def register_service(ip, port):
     print("UDP server IP address: " + local_network_ip + ":" + str(port))
 offset_sent = True
 
-def send_orientation_data(ip, port, pitch, roll, yaw):
-    message = f"{pitch},{roll},{yaw}"
+def send_orientation_data(ip, port, w, x, y, z):
+    message = f"{w},{x},{y},{z}"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.sendto(message.encode(), (ip, port))
@@ -168,17 +168,13 @@ def listen():
                 client.send_message(osc_addresses["tracker1"]["position"], tracker_initial_pose["tracker1"]["position"].to_vector())
                 client.send_message(osc_addresses["tracker1"]["rotation"], (x, y, z))
                 q.put(data)
-                if not offset_sent:
-                    print("sending offset")
-                    #send rotation only from camera to mcu
-                    # s.sendto(json.dumps(latest_camera_data).encode('utf-8'), (addr[0], 4210))
-                    rotation = latest_camera_data["rotation"].copy()
-                    #convert to float and degrees
-                    rotation["x"] = float(rotation["x"]) * 180 / 3.141592653589793
-                    rotation["y"] = float(rotation["y"]) * 180 / 3.141592653589793
-                    rotation["z"] = float(rotation["z"]) * 180 / 3.141592653589793
-                    send_orientation_data(addr[0], 4210, rotation["x"], rotation["y"], rotation["z"])
-                    offset_sent = True
+                # if not offset_sent:
+                    # print("sending offset")
+                    # #send rotation only from camera to mcu
+                    # # s.sendto(json.dumps(latest_camera_data).encode('utf-8'), (addr[0], 4210))
+                    # quaternion = latest_camera_data["quaternion"].copy()
+                    # send_orientation_data(addr[0], 4210, quaternion["w"], quaternion["x"], quaternion["y"], quaternion["z"])
+                    # offset_sent = True
             except Exception as e:
                 print(e)
                 print("error parsing data")

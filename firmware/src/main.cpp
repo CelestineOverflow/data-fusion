@@ -42,10 +42,10 @@ void loop()
         Udp.read(packetBuffer, 255);
         String packet = String(packetBuffer);
 
-        float pitch, roll, yaw;
-        if (sscanf(packet.c_str(), "%f,%f,%f", &pitch, &roll, &yaw) == 3) {
-            setOrientation(pitch, roll, yaw);
-            Serial.println("Orientation Set: Pitch=" + String(pitch) + ", Roll=" + String(roll) + ", Yaw=" + String(yaw));
+        float w, x, y, z;
+        if (sscanf(packet.c_str(), "%f,%f,%f,%f", &w, &x, &y, &z) == 4) {
+            setOrientationOffset(w, x, y, z);
+            Serial.println("Orientation Set: q=" + String(w) + "," + String(x) + "," + String(y) + "," + String(z));
         } else {
             Serial.println("Error: Invalid data format");
         }
