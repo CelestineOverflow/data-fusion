@@ -52,10 +52,14 @@
             pose.head.position.y = parseFloat(value.camera?.position?.y);
             pose.head.position.z = parseFloat(value.camera?.position?.z);
 
-            pose.chest.rotation.x = parseFloat(value.mcu?.orientation?.pitch)
-            // pose.chest.rotation.x = pose.chest.rotation.x - Math.PI / 2;
+            pose.chest.rotation.x = parseFloat(value.mcu?.orientation?.pitch);
             pose.chest.rotation.y = parseFloat(value.mcu?.orientation?.roll);
             pose.chest.rotation.z = parseFloat(value.mcu?.orientation?.yaw);
+            //convert to radians
+            pose.chest.rotation.x = pose.chest.rotation.x * (Math.PI / 180);
+            pose.chest.rotation.y = pose.chest.rotation.y * (Math.PI / 180);
+            pose.chest.rotation.z = pose.chest.rotation.z * (Math.PI / 180);
+            
 
         } catch (e) {
             console.log(e);
