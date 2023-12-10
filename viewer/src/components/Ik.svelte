@@ -43,26 +43,44 @@
             }
         },
     }
+    
+    const quaternion = new THREE.Quaternion();
+    const quaternion2 = new THREE.Quaternion();
 
 
     raw_data.subscribe((value) => {
         try {
 
             //Raw data: {"camera":{"id":19,"position":{"x":0.13985661012449555,"y":0.2898161857917122,"z":3.113400428397921},"rotation":{"x":0.03922555945961362,"y":0.05990199461313228,"z":0.08151047280510973}},"mcu":{"id":0,"orientation":{"pitch":-0.06,"roll":0,"yaw":-1.56,"unit":"rad/s"}}}
-            pose.head.rotation.x = parseFloat(value.camera?.rotation?.x);
-            pose.head.rotation.y = parseFloat(value.camera?.rotation?.y);
-            pose.head.rotation.z = parseFloat(value.camera?.rotation?.z);
-            pose.head.position.x = parseFloat(value.camera?.position?.x);
-            pose.head.position.y = parseFloat(value.camera?.position?.y);
-            pose.head.position.z = parseFloat(value.camera?.position?.z);
+            pose.head.rotation.x = parseFloat((value as { camera?: { rotation?: { x?: number } } })?.camera?.rotation?.x?.toString() ?? "");
+            pose.head.rotation.y = parseFloat((value as { camera?: { rotation?: { y?: number } } })?.camera?.rotation?.y?.toString() ?? "");
+            pose.head.rotation.z = parseFloat((value as { camera?: { rotation?: { z?: number } } })?.camera?.rotation?.z?.toString() ?? "");
+            pose.head.position.x = parseFloat((value as { camera?: { position?: { x?: number } } })?.camera?.position?.x?.toString() ?? "");
+            pose.head.position.y = parseFloat((value as { camera?: { position?: { y?: number } } })?.camera?.position?.y?.toString() ?? "");
+            pose.head.position.z = parseFloat((value as { camera?: { position?: { z?: number } } })?.camera?.position?.z?.toString() ?? "");
 
-            pose.chest.rotation.x = parseFloat(value.mcu?.orientation?.pitch);
-            pose.chest.rotation.y = parseFloat(value.mcu?.orientation?.roll);
-            pose.chest.rotation.z = parseFloat(value.mcu?.orientation?.yaw);
-            //convert to radians
-            pose.chest.rotation.x = pose.chest.rotation.x * (Math.PI / 180);
-            pose.chest.rotation.y = pose.chest.rotation.y * (Math.PI / 180);
-            pose.chest.rotation.z = pose.chest.rotation.z * (Math.PI / 180);
+            //camera has field called quaternion
+            quaternion.set(
+                parseFloat((value as { camera?: { quaternion?: { x?: number } } })?.camera?.quaternion?.x?.toString() ?? ""),
+                parseFloat((value as { camera?: { quaternion?: { y?: number } } })?.camera?.quaternion?.y?.toString() ?? ""),
+                parseFloat((value as { camera?: { quaternion?: { z?: number } } })?.camera?.quaternion?.z?.toString() ?? ""),
+                parseFloat((value as { camera?: { quaternion?: { w?: number } } })?.camera?.quaternion?.w?.toString() ?? "")
+            );
+            
+
+
+            //mcu has field called quaternion
+            quaternion2.set(
+                parseFloat((value as { mcu?: { quaternion?: { x?: number } } })?.mcu?.quaternion?.x?.toString() ?? ""),
+                parseFloat((value as { mcu?: { quaternion?: { y?: number } } })?.mcu?.quaternion?.y?.toString() ?? ""),
+                parseFloat((value as { mcu?: { quaternion?: { z?: number } } })?.mcu?.quaternion?.z?.toString() ?? ""),
+                parseFloat((value as { mcu?: { quaternion?: { w?: number } } })?.mcu?.quaternion?.w?.toString() ?? "")
+                
+            );
+            //rotate quat 2 by 90 degrees around x axis
+            quaternion2.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2));
+
+
 
 
 
@@ -200,15 +218,19 @@
 
         const animate = function () {
             requestAnimationFrame(animate);
-            astronaut.rotation.x = pose.head.rotation.x;
-            astronaut.rotation.y = pose.head.rotation.y;
-            astronaut.rotation.z = pose.head.rotation.z;
+            // astronaut.rotation.x = pose.head.rotation.x;
+            // astronaut.rotation.y = pose.head.rotation.y;
+            // astronaut.rotation.z = pose.head.rotation.z;
             astronaut.position.x = -pose.head.position.x;
             astronaut.position.y = -pose.head.position.y;
             astronaut.position.z = -pose.head.position.z;
-            astronaut2.rotation.x = pose.chest.rotation.x;
-            astronaut2.rotation.y = pose.chest.rotation.y;
-            astronaut2.rotation.z = pose.chest.rotation.z;
+            // astronaut2.rotation.x = pose.chest.rotation.x;
+            // astronaut2.rotation.y = pose.chest.rotation.y;
+            // astronaut2.rotation.z = pose.chest.rotation.z;
+            //apply quaternion
+            astronaut.quaternion.copy(quaternion);
+            astronaut2.quaternion.copy(quaternion2);
+
             time += 0.01;
             renderer.render(scene, camera);
         };

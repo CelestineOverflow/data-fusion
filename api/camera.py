@@ -104,7 +104,7 @@ import json
 import queue
 from fastapi.responses import StreamingResponse
 
-data = {"id":1,"position":{"x":0,"y":-0.08,"z":1.04},"rotation":{"x":0,"y":-0.12,"z":0.1}}
+data = {"id":1,"position":{"x":0,"y":-0.08,"z":1.04},"rotation":{"x":0,"y":-0.12,"z":0.1}, "quaternion": {"x": 0, "y": 0, "z": 0, "w": 0}}
 asDegree = False
 
 class Camera:
@@ -132,7 +132,9 @@ class Camera:
         for d in detections:
             pose_data = d.pose_R, d.pose_t
             rvec, tvec = pose_data[0], pose_data[1]
-            sp.spatial.transform.Rotation.from_matrix(rvec).as_quat()
+            quaternion = sp.spatial.transform.Rotation.from_matrix(rvec).as_quat()
+            
+            
             rotation = sp.spatial.transform.Rotation.from_matrix(rvec).as_euler('xyz', degrees=asDegree)
             x, y, z = rotation[0], rotation[1], rotation[2]
             cv2.circle(img, (int(d.center[0]), int(d.center[1])), 5, (0, 0, 255), -1)
@@ -148,9 +150,19 @@ class Camera:
             data["position"]["x"] = tvec[0][0]
             data["position"]["y"] = tvec[1][0]
             data["position"]["z"] = tvec[2][0]
+            data["quaternion"] = {"x": quaternion[0], "y": quaternion[1], "z": quaternion[2], "w": quaternion[3]}
             data["rotation"]["x"] = x
             data["rotation"]["y"] = y
             data["rotation"]["z"] = z
+            
+            # rotate by pi/2 quaternion
+            new_quaternion = np.array([0, 0, 1, 0])
+            data["quaternion"]["x"] = quaternion[0] * new_quaternion[0] - quaternion[1] * new_quaternion[1] - quaternion[2] * new_quaternion[2] - quaternion[3] * new_quaternion[3]
+            data["quaternion"]["y"] = quaternion[0] * new_quaternion[1] + quaternion[1] * new_quaternion[0] + quaternion[2] * new_quaternion[3] - quaternion[3] * new_quaternion[2]
+            data["quaternion"]["z"] = quaternion[0] * new_quaternion[2] - quaternion[1] * new_quaternion[3] + quaternion[2] * new_quaternion[0] + quaternion[3] * new_quaternion[1]
+            data["quaternion"]["w"] = quaternion[0] * new_quaternion[3] + quaternion[1] * new_quaternion[2] - quaternion[2] * new_quaternion[1] + quaternion[3] * new_quaternion[0]
+            
+            
             
         if len(detections) == 0:
             return img, None
