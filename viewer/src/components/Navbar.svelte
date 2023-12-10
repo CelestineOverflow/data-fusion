@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { state } from '../stores/server_stats.js';
+    import { state } from '../stores/websocket';
     let server_state : string = '🚩';
     state.subscribe((value) => {
         server_state = value;

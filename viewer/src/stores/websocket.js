@@ -1,8 +1,7 @@
 import { writable } from 'svelte/store';
-import { onMount } from "svelte";
+import { onMount } from 'svelte';
 
-let socket: WebSocket;
-let state = writable("🚩");
+export const state = writable('🟠');
 
 export const rotation_vector_0 = writable([0, 0, 0]);
 export const position_vector_0 = writable([0, 0, 0]);
@@ -11,12 +10,14 @@ export const rotation_vector_1 = writable([0, 0, 0]);
 export const position_vector_1 = writable([0, 0, 0]);
 export const raw_data = writable({});
 
-onMount(() => {
-    socket = new WebSocket("ws://127.0.0.1:5000/ws")
+export function connectToWebSocket() {
+    let socket = new WebSocket("ws://localhost:5000/ws");
+
     socket.onmessage = function (event) {
         try {
             let data = JSON.parse(event.data);
-            raw_data.set(data);
+
+            raw_data.set(JSON.parse(event.data));
         } catch (error) {
             console.log("Error parsing JSON");
             console.log(event.data);
@@ -35,4 +36,5 @@ onMount(() => {
         console.log(event);
     };
 }
-);
+
+

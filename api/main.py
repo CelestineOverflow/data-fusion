@@ -13,6 +13,9 @@ import utils.mdns_registered as mdns_registered
 from zeroconf import ServiceInfo, Zeroconf
 from pythonosc.udp_client import SimpleUDPClient
 import socket
+import camera as cmr
+import traceback
+
 
 
 #get ip in local network
@@ -134,7 +137,7 @@ def listen():
         try:
             data, addr = s.recvfrom(bufferSize)
             data = data.decode('utf-8')
-            print(data)
+            # print(data)
             try:
                 parsed_data = json.loads(data)
             
@@ -146,11 +149,11 @@ def listen():
                 y = float(y) * 180 / 3.141592653589793
                 z = float(z) * 180 / 3.141592653589793
                 
-                client.send_message(osc_addresses["head"]["position"], tracker_initial_pose["head"]["position"].to_vector())
-                client.send_message(osc_addresses["head"]["rotation"], tracker_initial_pose["head"]["rotation"].to_vector())
+                # client.send_message(osc_addresses["head"]["position"], tracker_initial_pose["head"]["position"].to_vector())
+                # client.send_message(osc_addresses["head"]["rotation"], tracker_initial_pose["head"]["rotation"].to_vector())
                 client.send_message(osc_addresses["tracker1"]["position"], tracker_initial_pose["tracker1"]["position"].to_vector())
                 client.send_message(osc_addresses["tracker1"]["rotation"], (x, y, z))
-                
+                q.put(data)
             except Exception as e:
                 print(e)
                 print("error parsing data")
@@ -184,17 +187,45 @@ async def get():
         except Exception as e:
             return {"error": "data error from microcontroller e: " + str(e)}
 
+camera = cmr.Camera(calibration_file_path="calibration_data.json", camera_id=1)
 
+@app.get("/setCamera/{id}")
+def set_camera(id: int):
+    camera.set_camera(id)
+@app.get("/video")
+def video_endpoint():
+    return camera.video_endpoint()
+
+latest_camera_data = {"id":19,"position":{"x":0.31799993733185844,"y":0.0719889898174673,"z":2.9135152263236006},"rotation":{"x":-0.13036970754792743,"y":0.30010247141273116,"z":0.7551000454510922}}
+latest_mcu_data = {}
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    global q
+    global latest_camera_data
+    global latest_mcu_data
     await websocket.accept()
     while True:
         if q.empty():
             await asyncio.sleep(0.01)
         else:
             try:
-                data = json.loads(q.get())
-                await websocket.send_text(json.dumps(data))
-            except:
-                await websocket.send_text(json.dumps({"error": "data error from microcontroller"}))
-                continue
+                mcu_data = json.loads(q.get())
+                #if mcu isnt empty
+                if mcu_data:
+                    latest_mcu_data = mcu_data
+                camera_data = camera.getData()
+                #if camera isnt empty
+                if camera_data:
+                    latest_camera_data = camera_data
+                #if both arent empty
+                await websocket.send_json({"camera": latest_camera_data, "mcu": latest_mcu_data})
+                
+            except Exception as e:
+                traceback.print_exc()
+
+            
+            
+            
+
+
+

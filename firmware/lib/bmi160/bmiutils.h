@@ -55,7 +55,7 @@ void init_bmi160()
 
 
 
-#define SEND_AS_DEGREES 0
+#define SEND_AS_DEGREES 1
 
 static float roll = 0.0;static float pitch = 0.0;
 static float yaw = 0.0;
@@ -125,7 +125,64 @@ static void integrate_data()
   }
 }
 
+static void integrate_gyro_data()
+{
+  int rslt;
+  int16_t gyroData[3] = {0}; // Array to hold only gyro data
+  float dt;
+  long current_time = millis();
+  if (last_time == 0)
+  {
+    dt = 0.01; // initial guess
+  }
+  else
+  {
+    dt = (current_time - last_time) / 1000.0; // convert to seconds
+  }
 
+  // Assuming that there is a modified function to get only gyro data
+  rslt = bmi160.getGyroData(gyroData);
+  if (rslt == 0)
+  {
+    float gyro_rate_x = gyroData[0];
+    float gyro_rate_y = gyroData[1];
+    float gyro_rate_z = gyroData[2];
+
+
+
+    pitch += (gyro_rate_x * dt);
+    roll += (gyro_rate_y * dt);
+    yaw += (gyro_rate_z * dt);
+#if SEND_AS_DEGREES
+    pitch_cal = pitch * 180.0 / 3.14;
+    roll_cal = roll * 180.0 / 3.14;
+    yaw_cal = yaw * 180.0 / 3.14;
+#else
+    pitch_cal = pitch;
+    roll_cal = roll;
+    yaw_cal = yaw;
+#endif
+    last_time = current_time;
+  }
+  else
+  {
+    Serial.println("err");
+  }
+}
+
+
+void print_bmi160()
+{
+  integrate_gyro_data();
+  Serial.print("Pitch: ");
+  Serial.print(pitch_cal);
+  Serial.print(" Roll: ");
+  Serial.print(roll_cal);
+  Serial.print(" Yaw: ");
+  Serial.print(yaw_cal);
+  Serial.print(" ");
+  Serial.println(unit);
+}
 
 void send_bmi_data(int (*send_data)(String))
 {
@@ -139,19 +196,6 @@ void send_bmi_data(int (*send_data)(String))
   data += "\"unit\": \"" + unit + "\"";
   data += "}";
   data += "}";
-
+  print_bmi160();
   send_data(data);
-}
-
-void print_bmi160()
-{
-  integrate_data();
-  Serial.print("Pitch: ");
-  Serial.print(pitch_cal);
-  Serial.print(" Roll: ");
-  Serial.print(roll_cal);
-  Serial.print(" Yaw: ");
-  Serial.print(yaw_cal);
-  Serial.print(" ");
-  Serial.println(unit);
 }
