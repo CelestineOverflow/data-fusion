@@ -1,254 +1,140 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Response
-import io
-from fastapi.responses import StreamingResponse
 import socket
+from time import sleep
+from zeroconf import IPVersion, ServiceInfo, Zeroconf
 import threading
 import queue
-from fastapi.middleware.cors import CORSMiddleware
 import json
-import random
-import time
-import asyncio
-import utils.mdns_registered as mdns_registered
-from zeroconf import ServiceInfo, Zeroconf
-from pythonosc.udp_client import SimpleUDPClient
-import socket
-import camera as cmr
-import traceback
-
-
-
-#get ip in local network
-local_network_ip = socket.gethostbyname(socket.gethostname())
-print(local_network_ip)
-#setup osc client
-client = SimpleUDPClient(local_network_ip, 9000)
-
-
-local_network_ip=mdns_registered.get_local_ip()
-port = 1337
-
-
-bufferSize = 1024
+# Global shutdown flag
+shutdown_flag = threading.Event()
 q = queue.Queue(10)
-app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-osc_addresses = {
-    "head": {
-        "position": "/tracking/trackers/head/position",
-        "rotation": "/tracking/trackers/head/rotation"
-    },
-    "tracker1": {
-        "position": "/tracking/trackers/1/position",
-        "rotation": "/tracking/trackers/1/rotation"
-    },
-    "tracker2": {
-        "position": "/tracking/trackers/2/position",
-        "rotation": "/tracking/trackers/2/rotation"
-    },
-    "tracker3": {
-        "position": "/tracking/trackers/3/position",
-        "rotation": "/tracking/trackers/3/rotation"
-    },
-    "tracker4": {
-        "position": "/tracking/trackers/4/position",
-        "rotation": "/tracking/trackers/4/rotation"
-    },
-    "tracker5": {
-        "position": "/tracking/trackers/5/position",
-        "rotation": "/tracking/trackers/5/rotation"
-    },
-    "tracker6": {
-        "position": "/tracking/trackers/6/position",
-        "rotation": "/tracking/trackers/6/rotation"
-    },
-    "tracker7": {
-        "position": "/tracking/trackers/7/position",
-        "rotation": "/tracking/trackers/7/rotation"
-    },
-    "tracker8": {
-        "position": "/tracking/trackers/8/position",
-        "rotation": "/tracking/trackers/8/rotation"
+#routing 
+routing_table = {
+    "bodyPart": {
+        "chest": {
+            "imu": {
+                "ip": "localhost",
+                "port": 4210,
+                "id": "083A8DCCC7B5"
+            },
+            "camera": {
+                "id": "17",}
+        },
     }
 }
 
-class Vector3():
-    
-    def __init__(self, x: float, y: float, z: float):
-        """
-        Creates a Vector3 instance.
-        
-        Parameters:
-        x (float): X coordinate.
-        y (float): Y coordinate.
-        z (float): Z coordinate.
-        """
-        self.x = x
-        self.y = y
-        self.z = z
-        
-    def to_vector(self) -> tuple:
-        """
-        Returns a tuple of the vector coordinates.
-        """
-        return (self.x, self.y, self.z)
-    
+def find_available_port(ip, start_port):
+    port = start_port
+    while True:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                sock.bind((ip, port))
+                return port  # The port is available
+        except OSError:
+            print(f"Port {port} is not available. Trying next port...")
+            port += 1  # Increment the port number and try again
 
-tracker_initial_pose = {
-    "head": {
-        "position": Vector3 (0.0, -0.1, -0.1),
-        "rotation": Vector3 (0.0, 0.0, 0.0)
-    },
-    "tracker1": {
-        "position": Vector3 (0.007038268726319075, -0.4179477095603943, -0.13543081283569336),
-        "rotation": Vector3 (6.355330944061279, 0.14127297699451447, 1.275995135307312)
-    }
-    
-}
-
-
-
-def register_service(ip, port):
-    z = Zeroconf()
-    mdns_registered.register_service(z, local_network_ip, port)
-    print("UDP server IP address: " + local_network_ip + ":" + str(port))
-offset_sent = True
 
 def send_orientation_data(ip, port, w, x, y, z):
     message = f"{w},{x},{y},{z}"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.sendto(message.encode(), (ip, port))
-        print(f"Sent: {message}")
+        # print(f"Sent: {message}")
     except Exception as e:
         print(f"Error: {e}")
     finally:
         sock.close()
 
 
-def listen():
-    global local_network_ip
-    global port
-    global bufferSize
-    global q
-    global offset_sent
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(0.1)
-    s.bind((local_network_ip, port))
-    start_t = time.time()
-    print("UDP server up and listening")
-    d = {"id":0,"accelerometer":{"x":0,"y":-0.08,"z":1.04},"gyroscope":{"x":0,"y":-0.12,"z":0.1}}
-    while True:
-        try:
-            data, addr = s.recvfrom(bufferSize)
-            data = data.decode('utf-8')
-            # print(data)
+def udp_server(ip, port, service_name):
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.bind((ip, port))
+        print(f"{service_name} UDP Server listening on {ip}:{port}")
+
+        while not shutdown_flag.is_set():
             try:
-                parsed_data = json.loads(data)
-            
-                x = parsed_data["orientation"]["pitch"]
-                y = parsed_data["orientation"]["roll"]
-                z = parsed_data["orientation"]["yaw"]
-                #convert to float and degrees
-                x = float(x) * 180 / 3.141592653589793
-                y = float(y) * 180 / 3.141592653589793
-                z = float(z) * 180 / 3.141592653589793
+                data, addr = sock.recvfrom(1024)  # Buffer size is 1024 bytes
+                parsed_data = json.loads(data.decode())
+                # print(f"Received data from {addr}: {parsed_data}")
+                # Handling IMU data to dynamically update its IP based on ID
+                if "imu" in parsed_data:
+                    for imu_id, imu_data in parsed_data["imu"].items():
+                        for part, details in routing_table["bodyPart"].items():
+                            if details["imu"]["id"] == imu_id:
+                                # Update IMU's IP and port dynamically
+                                details["imu"]["ip"] = addr[0]
+                                # print(f"Updated IP for IMU {imu_id} to {addr[0]}")
                 
-                # client.send_message(osc_addresses["head"]["position"], tracker_initial_pose["head"]["position"].to_vector())
-                # client.send_message(osc_addresses["head"]["rotation"], tracker_initial_pose["head"]["rotation"].to_vector())
-                client.send_message(osc_addresses["tracker1"]["position"], tracker_initial_pose["tracker1"]["position"].to_vector())
-                client.send_message(osc_addresses["tracker1"]["rotation"], (x, y, z))
-                q.put(data)
-                # if not offset_sent:
-                    # print("sending offset")
-                    # #send rotation only from camera to mcu
-                    # # s.sendto(json.dumps(latest_camera_data).encode('utf-8'), (addr[0], 4210))
-                    # quaternion = latest_camera_data["quaternion"].copy()
-                    # send_orientation_data(addr[0], 4210, quaternion["w"], quaternion["x"], quaternion["y"], quaternion["z"])
-                    # offset_sent = True
-            except Exception as e:
-                print(e)
-                print("error parsing data")
+                # Handling camera data
+                if "camera" in parsed_data:
+                    # Assuming camera data includes a direct mapping to an IMU ID or another identifier that can be used to find the corresponding IMU
+                    camera_id = list(parsed_data["camera"].keys())[0]  # Assuming one camera per message for simplification
+                    camera_data = parsed_data["camera"][camera_id]
+                    # Example on how you might need to link a camera to an IMU, assuming a direct or indirect linkage exists
+                    # For demonstration, using the camera ID to directly get the corresponding IMU ID might require a mapping or a direct relation like below
+                    for part, details in routing_table["bodyPart"].items():
+                        if details["camera"]["id"] == camera_id:
+                            imu_details = details["imu"]
+                            # Assuming quaternion data is structured correctly in the camera data
+                            quat = camera_data["quaternion"]
+                            send_orientation_data(imu_details["ip"], imu_details["port"], quat["w"], quat["x"], quat["y"], quat["z"])
+                            # print(f"Sent camera data from {camera_id} to IMU {details['imu']['id']}")
+            except json.JSONDecodeError:
+                print(f"Error parsing data: {data}")
                 continue
-            
-        except socket.timeout:
-            pass
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello there you beautiful person!, go to /docs for the api documentation"}
-
-t0 = threading.Thread(target=register_service, args=(local_network_ip, port))
-t0.start()
-time.sleep(5)
-t = threading.Thread(target=listen)
-t.start()
-
-
-@app.get("/get")
-async def get():
-    global q
-
-    if q.empty():
-        return {"message": "empty"}
-    else:
-        try:
-            data = json.loads(q.get())
-            return data
-        except Exception as e:
-            return {"error": "data error from microcontroller e: " + str(e)}
-
-camera = cmr.Camera(calibration_file_path="calibration_data.json", camera_id=1)
-
-@app.get("/setCamera/{id}")
-def set_camera(id: int):
-    camera.set_camera(id)
-@app.get("/video")
-def video_endpoint():
-    return camera.video_endpoint()
-
-latest_camera_data = {"id":19,"position":{"x":0.31799993733185844,"y":0.0719889898174673,"z":2.9135152263236006},"rotation":{"x":-0.13036970754792743,"y":0.30010247141273116,"z":0.7551000454510922}}
-latest_mcu_data = {}
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    global q
-    global latest_camera_data
-    global latest_mcu_data
-    global offset_sent
-    await websocket.accept()
-    while True:
-        if q.empty():
-            await asyncio.sleep(0.01)
-        else:
-            try:
-                mcu_data = json.loads(q.get())
-                #if mcu isnt empty
-                if mcu_data:
-                    latest_mcu_data = mcu_data
-                camera_data = camera.getData()
-                #if camera isnt empty
-                if camera_data is not None:
-                    latest_camera_data = camera_data
-                    offset_sent = False
-                #if both arent empty
-                await websocket.send_json({"camera": latest_camera_data, "mcu": latest_mcu_data})
-                
-            except Exception as e:
-                traceback.print_exc()
-
-            
+            except socket.timeout:
+                continue  # Go back to the start of the loop if the socket times out
+            except OSError:
+                break  # Exit the loop if the socket is closed
             
             
 
 
+def register_service(ip, port, name, type_):
+    desc = {'description': f'{name} Service'}
+    service_name = f"{name}.{type_}"
+    info = ServiceInfo(
+        type_,
+        service_name,
+        addresses=[socket.inet_aton(ip)],
+        port=port,
+        properties=desc,
+        server=f"{name}.local.",
+    )
 
+    zeroconf = Zeroconf(ip_version=IPVersion.V4Only)
+    try:
+        print(f"Registering {name} service, press Ctrl-C to exit...")
+        zeroconf.register_service(info)
+        while not shutdown_flag.is_set():
+            sleep(0.1)
+    finally:
+        print(f"Unregistering {name} service...")
+        zeroconf.unregister_service(info)
+        zeroconf.close()
+
+if __name__ == '__main__':
+    try:
+        local_network_ip = socket.gethostbyname(socket.gethostname())
+        # Check ports for availability
+        # Global UDP listener ports
+        imu_udp_listener_port = find_available_port(local_network_ip, 6969)
+        camera_udp_listener_port = find_available_port(local_network_ip, 4242)
+
+        threads = [
+            threading.Thread(target=udp_server, args=(local_network_ip, imu_udp_listener_port, "IMU")),
+            threading.Thread(target=register_service, args=(local_network_ip, imu_udp_listener_port, "IMUService", "_imu._udp.local.")),
+            threading.Thread(target=udp_server, args=(local_network_ip, camera_udp_listener_port, "Camera")),
+            threading.Thread(target=register_service, args=(local_network_ip, camera_udp_listener_port, "CameraService", "_camera._udp.local."))
+        ]
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+    except:
+        shutdown_flag.set()
+        for thread in threads:
+            thread.join()

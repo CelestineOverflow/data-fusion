@@ -132,7 +132,7 @@ int find_udp_server()
 {
     while (1)
     {
-        if (find_service("datafusion", "udp") == 0)
+        if (find_service("imu", "udp") == 0)
         {
             return 0;
         }

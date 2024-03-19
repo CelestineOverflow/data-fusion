@@ -7,7 +7,7 @@
 
 
 
-    <div class="card" style="width: 19rem;">
+    <div class="card" style="width: 40rem;">
 
         <div class="card-body">
           <h5 class="card-title">Live Video Feed</h5>

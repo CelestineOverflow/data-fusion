@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
 	import Camera from './Camera.svelte';
     import { CCDIKHelper } from "three/examples/jsm/animation/CCDIKSolver.js";
     import * as THREE from "three";
@@ -9,85 +9,36 @@
     import { onMount } from "svelte";
 
     let canvas: HTMLCanvasElement;
-    let isNewValue = false;
-    import {raw_data } from "../stores/websocket";
-    
-    let pose = {
-        "head": {
-            "rotation": {
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "position": {
-                "x": 0,
-                "y": 0,
-                "z": 0
+    import {camera_data, mcu} from './../stores/websocket.js';
+
+    let mcu_quat = new THREE.Quaternion();
+    let camera_quat = new THREE.Quaternion();
+    mcu.subscribe((value) => {
+        for (const id in value) {
+                if (id === '192.168.1.105') {
+                    mcu.subscribe((value: { [key: string]: any }) => {
+                        for (const id in value) {
+                            if (id === '192.168.1.105') {
+                                mcu_quat = new THREE.Quaternion(value[id].quaternion.x, value[id].quaternion.y, value[id].quaternion.z, value[id].quaternion.w);
+                            }
+                        }
+                    });
+                } 
             }
-        },
-        "chest": {
-            "rotation": {
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "position": {
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "offset": {
-                "x": 0,
-                "y": 0,
-                "z": 0
+    });
+
+    camera_data.subscribe((value) => {
+        for (const id in value) {
+                if (id === '192.168.1.105') {
+                    mcu.subscribe((value: { [key: string]: any }) => {
+                        for (const id in value) {
+                            if (id === '192.168.1.105') {
+                                mcu_quat = new THREE.Quaternion(value[id].quaternion.x, value[id].quaternion.y, value[id].quaternion.z, value[id].quaternion.w);
+                            }
+                        }
+                    });
+                } 
             }
-        },
-    }
-    
-    const quaternion = new THREE.Quaternion();
-    const quaternion2 = new THREE.Quaternion();
-
-
-    raw_data.subscribe((value) => {
-        try {
-
-            //Raw data: {"camera":{"id":19,"position":{"x":0.13985661012449555,"y":0.2898161857917122,"z":3.113400428397921},"rotation":{"x":0.03922555945961362,"y":0.05990199461313228,"z":0.08151047280510973}},"mcu":{"id":0,"orientation":{"pitch":-0.06,"roll":0,"yaw":-1.56,"unit":"rad/s"}}}
-            pose.head.rotation.x = parseFloat((value as { camera?: { rotation?: { x?: number } } })?.camera?.rotation?.x?.toString() ?? "");
-            pose.head.rotation.y = parseFloat((value as { camera?: { rotation?: { y?: number } } })?.camera?.rotation?.y?.toString() ?? "");
-            pose.head.rotation.z = parseFloat((value as { camera?: { rotation?: { z?: number } } })?.camera?.rotation?.z?.toString() ?? "");
-            pose.head.position.x = parseFloat((value as { camera?: { position?: { x?: number } } })?.camera?.position?.x?.toString() ?? "");
-            pose.head.position.y = parseFloat((value as { camera?: { position?: { y?: number } } })?.camera?.position?.y?.toString() ?? "");
-            pose.head.position.z = parseFloat((value as { camera?: { position?: { z?: number } } })?.camera?.position?.z?.toString() ?? "");
-
-            //camera has field called quaternion
-            quaternion.set(
-                parseFloat((value as { camera?: { quaternion?: { x?: number } } })?.camera?.quaternion?.x?.toString() ?? ""),
-                parseFloat((value as { camera?: { quaternion?: { y?: number } } })?.camera?.quaternion?.y?.toString() ?? ""),
-                parseFloat((value as { camera?: { quaternion?: { z?: number } } })?.camera?.quaternion?.z?.toString() ?? ""),
-                parseFloat((value as { camera?: { quaternion?: { w?: number } } })?.camera?.quaternion?.w?.toString() ?? "")
-            );
-            
-
-
-            //mcu has field called quaternion
-            quaternion2.set(
-                parseFloat((value as { mcu?: { quaternion?: { x?: number } } })?.mcu?.quaternion?.x?.toString() ?? ""),
-                parseFloat((value as { mcu?: { quaternion?: { y?: number } } })?.mcu?.quaternion?.y?.toString() ?? ""),
-                parseFloat((value as { mcu?: { quaternion?: { z?: number } } })?.mcu?.quaternion?.z?.toString() ?? ""),
-                parseFloat((value as { mcu?: { quaternion?: { w?: number } } })?.mcu?.quaternion?.w?.toString() ?? "")
-                
-            );
-            //rotate quat 2 by 90 degrees around x axis
-            quaternion2.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2));
-
-
-
-
-
-
-        } catch (e) {
-            console.log(e);
-        }
     });
     onMount(() => {
         // setup scene
@@ -138,7 +89,9 @@
 
         // Create a texture with a different color for each face of the cube
         colors.forEach((color, index) => {
-            context.fillStyle = `#${color.toString(16)}`;
+            if (context) {
+                context.fillStyle = `#${color.toString(16)}`;
+            }
 
         });
 
@@ -148,14 +101,6 @@
             map: new THREE.CanvasTexture(canvas),
         });
 
-        // Create the head cube and add it to the scene
-        // const head_cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-        // scene.add(head_cube);
-
-        // Create the chest cube and add it to the scene
-        // const chest_cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-        // chest_cube.position.y = -1;
-        // scene.add(chest_cube);
 
         //add light
         const light = new THREE.AmbientLight(0xffffff, 1);
@@ -218,19 +163,8 @@
 
         const animate = function () {
             requestAnimationFrame(animate);
-            // astronaut.rotation.x = pose.head.rotation.x;
-            // astronaut.rotation.y = pose.head.rotation.y;
-            // astronaut.rotation.z = pose.head.rotation.z;
-            astronaut.position.x = -pose.head.position.x;
-            astronaut.position.y = -pose.head.position.y;
-            astronaut.position.z = -pose.head.position.z;
-            // astronaut2.rotation.x = pose.chest.rotation.x;
-            // astronaut2.rotation.y = pose.chest.rotation.y;
-            // astronaut2.rotation.z = pose.chest.rotation.z;
-            //apply quaternion
-            astronaut.quaternion.copy(quaternion);
+            astronaut.quaternion.copy(mcu_quat);
             astronaut2.quaternion.copy(quaternion2);
-
             time += 0.01;
             renderer.render(scene, camera);
         };
@@ -253,4 +187,4 @@
         width: 500px;
         height: 500px;
     }
-</style>
+</style> -->

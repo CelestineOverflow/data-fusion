@@ -15,18 +15,25 @@ unsigned int localUdpPort = 4210; // local port to listen on
 void setup()
 {
   Serial.begin(115200);
-  initBMI160();
-  WiFiManager wifiManager;
-  wifiManager.autoConnect("AutoConnectAP");
+  // WiFiManager wifiManager;
+  // wifiManager.autoConnect("AutoConnectAP");
+  //wifi pass 97106678
+  WiFi.begin("Martin Router King", "aezakmiQ1");
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
   Serial.println("connected to wifi");
   Serial.println("local ip");
   Serial.println(WiFi.localIP());
+  Serial.println("MAC address");
+  setMacAddress(WiFi.macAddress());
   Serial.println("Initializing IMU");
-  
+  initBMI160();
   Serial.println("Initializing UDP");
   find_udp_server();
   Serial.println("Initializing OTA");
-
   Serial.println("Initializing UDP");
   Udp.begin(localUdpPort);
   Serial.println("UDP Server started on port: " + String(localUdpPort));

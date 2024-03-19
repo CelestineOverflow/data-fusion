@@ -89,49 +89,6 @@ void integrateGyroData()
     gx -= offset_bmi160[3];
     gy -= offset_bmi160[4];
     gz -= offset_bmi160[5];
-
-    // remap axes
-    //  Flipping axes
-#ifdef FLIP_X
-    gx = -gx;
-    ax = -ax;
-#endif
-#ifdef FLIP_Y
-    gy = -gy;
-    ay = -ay;
-#endif
-#ifdef FLIP_Z
-    gz = -gz;
-    az = -az;
-#endif
-
-    // Swapping axes
-    int16_t temp;
-#ifdef SWAP_XY
-    temp = gx;
-    gx = gy;
-    gy = temp;
-    temp = ax;
-    ax = ay;
-    ay = temp;
-#endif
-#ifdef SWAP_YZ
-    temp = gy;
-    gy = gz;
-    gz = temp;
-    temp = ay;
-    ay = az;
-    az = temp;
-#endif
-#ifdef SWAP_XZ
-    temp = gx;
-    gx = gz;
-    gz = temp;
-    temp = ax;
-    ax = az;
-    az = temp;
-#endif
-
     long currentTime = micros();
     float dt = (currentTime - lastTime) / 1000000.0;
     lastTime = currentTime;
@@ -144,6 +101,8 @@ void integrateGyroData()
     gyroY += gyroRateY * dt;
     gyroZ += gyroRateZ * dt;
 }
+float valueSwitch = 1.0f;
+float targetQuaternion[4] = {1.0f, 0.0f, 0.0f, 0.0f};
 
 void IntegrateDataMadgwick()
 {
@@ -154,67 +113,6 @@ void IntegrateDataMadgwick()
     int16_t ax, ay, az, gx, gy, gz;
     bmi160.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-    if (!externalQuaternionSet)
-    {
-        // Apply offsets only if the quaternion has not been externally set
-        ax -= offset_bmi160[0];
-        ay -= offset_bmi160[1];
-        az -= offset_bmi160[2];
-        gx -= offset_bmi160[3];
-        gy -= offset_bmi160[4];
-        gz -= offset_bmi160[5];
-    }
-    else
-    {
-        // Reset the flag after using the external quaternion for the first time
-        externalQuaternionSet = false;
-    }
-
-
-    // remap axes
-    //  Flipping axes
-
-
-#ifdef FLIP_X
-    gx = -gx;
-    ax = -ax;
-#endif
-#ifdef FLIP_Y
-    gy = -gy;
-    ay = -ay;
-#endif
-#ifdef FLIP_Z
-    gz = -gz;
-    az = -az;
-#endif
-    int16_t temp = 0;
-
-// Swap axes if needed
-#ifdef SWAP_XY
-    temp = gx;
-    gx = gy;
-    gy = temp;
-    temp = ax;
-    ax = ay;
-    ay = temp;
-#endif
-#ifdef SWAP_YZ
-    temp = gy;
-    gy = gz;
-    gz = temp;
-    temp = ay;
-    ay = az;
-    az = temp;
-#endif
-#ifdef SWAP_XZ
-    temp = gx;
-    gx = gz;
-    gz = temp;
-    temp = ax;
-    ax = az;
-    az = temp;
-#endif
-
     // Convert gyroscope data to rad/s
     float gyroRadX = gx / gyroScaleFactor * DEG_TO_RAD;
     float gyroRadY = gy / gyroScaleFactor * DEG_TO_RAD;
@@ -222,21 +120,17 @@ void IntegrateDataMadgwick()
 
     // Update the Madgwick filter
     madgwickFilter.update(quaternion, ax, ay, az, gyroRadX, gyroRadY, gyroRadZ, dt);
+    // Update the target quaternion if external quaternion is set
+    if (valueSwitch < 1.0f)
+    {
+        valueSwitch += 0.001f;
+        madgwickFilter.update(targetQuaternion, ax, ay, az, gyroRadX, gyroRadY, gyroRadZ, dt);
+        for (int i = 0; i < 4; i++)
+        {
+            quaternion[i] = (1 - valueSwitch) * quaternion[i] + valueSwitch * targetQuaternion[i];
+        }
+    }
 }
-
-// void sendBMIData(int (*sendData)(String)) {
-//     integrateGyroData();
-//     String data = "{\"id\": 0, \"orientation\": {";
-//     data += "\"pitch\": " + String(gyroX) + ", ";
-//     data += "\"roll\": " + String(gyroY) + ", ";
-//     data += "\"yaw\": " + String(gyroZ) + ", ";
-//     data += "\"unit\": \"" + unit + "\"";
-//     data += "}}";
-//     sendData(data);
-//     // printBMI160();
-// }
-
-float quaternion_offset[4] = {1.0f, 0.0f, 0.0f, 0.0f}; // Quaternion offset to be applied to the IMU's quaternion
 
 void multiplyQuaternions(const float q1[4], const float q2[4], float result[4])
 {
@@ -245,39 +139,60 @@ void multiplyQuaternions(const float q1[4], const float q2[4], float result[4])
     result[2] = q1[0] * q2[2] - q1[1] * q2[3] + q1[2] * q2[0] + q1[3] * q2[1]; // y
     result[3] = q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1] + q1[3] * q2[0]; // z
 }
+void eulerToQuaternion(float yaw, float pitch, float roll, float *q)
+{
+    float cy = cos(yaw * 0.5);
+    float sy = sin(yaw * 0.5);
+    float cp = cos(pitch * 0.5);
+    float sp = sin(pitch * 0.5);
+    float cr = cos(roll * 0.5);
+    float sr = sin(roll * 0.5);
+
+    q[0] = cr * cp * cy + sr * sp * sy; // W
+    q[1] = sr * cp * cy - cr * sp * sy; // X
+    q[2] = cr * sp * cy + sr * cp * sy; // Y
+    q[3] = cr * cp * sy - sr * sp * cy; // Z
+}
+
+
+
 
 void setOrientationOffset(float w, float x, float y, float z)
 {
-    quaternion_offset[0] = w;
-    quaternion_offset[1] = x;
-    quaternion_offset[2] = y;
-    quaternion_offset[3] = z;
+    targetQuaternion[0] = w;
+    targetQuaternion[1] = x;
+    targetQuaternion[2] = y;
+    targetQuaternion[3] = z;
+    valueSwitch = 0.0f;
 }
+
+
+String macAddress;
+
+void setMacAddress(String mac)
+{
+    macAddress = mac;
+    macAddress.replace(":", "");
+}
+
+
+#include <ArduinoJson.h>
+
 void sendBMIData(int (*sendData)(String))
 {
     IntegrateDataMadgwick(); // Update orientation using Madgwick filter
+     StaticJsonDocument<256> doc; // Adjust size as needed
+    JsonObject imu = doc.createNestedObject("imu");
+    JsonObject macObject = imu.createNestedObject(macAddress.c_str());
+    JsonObject quaternionObject = macObject.createNestedObject("quaternion");
+    quaternionObject["x"] = quaternion[1];
+    quaternionObject["y"] = quaternion[2];
+    quaternionObject["z"] = quaternion[3];
+    quaternionObject["w"] = quaternion[0];
 
-    float combinedQuaternion[4];
-    multiplyQuaternions(quaternion, quaternion_offset, combinedQuaternion);
+    String output;
+    serializeJson(doc, output);
+    sendData(output);
 
-    // Convert combined quaternion to Euler angles (pitch, roll, yaw)
-    float pitch = atan2(2.0f * (combinedQuaternion[0] * combinedQuaternion[1] + combinedQuaternion[2] * combinedQuaternion[3]), 1.0f - 2.0f * (combinedQuaternion[1] * combinedQuaternion[1] + combinedQuaternion[2] * combinedQuaternion[2]));
-    float roll = asin(2.0f * (combinedQuaternion[0] * combinedQuaternion[2] - combinedQuaternion[3] * combinedQuaternion[1]));
-    float yaw = atan2(2.0f * (combinedQuaternion[0] * combinedQuaternion[3] + combinedQuaternion[1] * combinedQuaternion[2]), 1.0f - 2.0f * (combinedQuaternion[2] * combinedQuaternion[2] + combinedQuaternion[3] * combinedQuaternion[3]));
 
-    // Prepare data string
-    String data = "{\"id\": 0, \"orientation\": {";
-    data += "\"pitch\": " + String(pitch) + ", ";
-    data += "\"roll\": " + String(roll) + ", ";
-    data += "\"yaw\": " + String(yaw) + ", ";
-    data += "\"unit\": \"" + unit + "\"";
-
-    data += "}, \"quaternion\": {";
-    data += "\"w\": " + String(combinedQuaternion[0]) + ", ";
-    data += "\"x\": " + String(combinedQuaternion[1]) + ", ";
-    data += "\"y\": " + String(combinedQuaternion[2]) + ", ";
-    data += "\"z\": " + String(combinedQuaternion[3]);
-    data += "}}";
-    sendData(data);
-    // Serial.println(data);
 }

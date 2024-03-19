@@ -6,6 +6,7 @@
     import {connectToWebSocket } from "../stores/websocket";
     import Camera from "../components/Camera.svelte";
     import RawData from "../components/RawData.svelte";
+    import Chest from "../components/Chest.svelte";
     let data : any;
 
     onMount(() => {
@@ -20,18 +21,21 @@
 
 
 
-<div class="container">
+
+
+  <div class="container">
     <div class="row">
-      <div class="col-sm">
-        <Ik />
-      </div>
       <div class="col-sm">
         <Camera />
       </div>
       <div class="col-sm">
         <RawData />
       </div>
+      <!-- <div class="col-xxl">
+        <Chest />
+      </div> -->
+      <!-- <div class="col-xxl">
+        <Ik />
+      </div> -->
     </div>
   </div>
-
-
