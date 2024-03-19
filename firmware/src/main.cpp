@@ -15,15 +15,8 @@ unsigned int localUdpPort = 4210; // local port to listen on
 void setup()
 {
   Serial.begin(115200);
-  // WiFiManager wifiManager;
-  // wifiManager.autoConnect("AutoConnectAP");
-  //wifi pass 97106678
-  WiFi.begin("Martin Router King", "aezakmiQ1");
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(1000);
-    Serial.println("Connecting to WiFi...");
-  }
+  WiFiManager wifiManager;
+  wifiManager.autoConnect("AutoConnectAP");
   Serial.println("connected to wifi");
   Serial.println("local ip");
   Serial.println(WiFi.localIP());
