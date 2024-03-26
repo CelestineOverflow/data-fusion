@@ -1,4 +1,4 @@
-<!-- <script lang="ts">
+<script lang="ts">
 	import Camera from './Camera.svelte';
     import { CCDIKHelper } from "three/examples/jsm/animation/CCDIKSolver.js";
     import * as THREE from "three";
@@ -9,37 +9,30 @@
     import { onMount } from "svelte";
 
     let canvas: HTMLCanvasElement;
-    import {camera_data, mcu} from './../stores/websocket.js';
+    import {raw_data} from './../stores/websocket.js';
 
     let mcu_quat = new THREE.Quaternion();
     let camera_quat = new THREE.Quaternion();
-    mcu.subscribe((value) => {
-        for (const id in value) {
-                if (id === '192.168.1.105') {
-                    mcu.subscribe((value: { [key: string]: any }) => {
-                        for (const id in value) {
-                            if (id === '192.168.1.105') {
-                                mcu_quat = new THREE.Quaternion(value[id].quaternion.x, value[id].quaternion.y, value[id].quaternion.z, value[id].quaternion.w);
-                            }
-                        }
-                    });
-                } 
-            }
+    let x_angle = 0;
+    let y_angle = 0;
+    let z_angle = 0;
+    let eulerCamera = new THREE.Euler();
+    raw_data.subscribe((value) => {
+        if (value.imu) {
+            let quat = value.imu['083A8DCCC2F4'].quaternion;
+            mcu_quat.set(quat.x, quat.y, quat.z, quat.w);
+            //set x_angle, y_angle, z_angle
+            
+        }
+        if (value.camera) {
+            let quat = value.camera['16'].quaternion;
+            camera_quat.set(quat.x, quat.y, quat.z, quat.w);
+
+        }
     });
 
-    camera_data.subscribe((value) => {
-        for (const id in value) {
-                if (id === '192.168.1.105') {
-                    mcu.subscribe((value: { [key: string]: any }) => {
-                        for (const id in value) {
-                            if (id === '192.168.1.105') {
-                                mcu_quat = new THREE.Quaternion(value[id].quaternion.x, value[id].quaternion.y, value[id].quaternion.z, value[id].quaternion.w);
-                            }
-                        }
-                    });
-                } 
-            }
-    });
+    
+
     onMount(() => {
         // setup scene
         const scene = new THREE.Scene();
@@ -164,7 +157,12 @@
         const animate = function () {
             requestAnimationFrame(animate);
             astronaut.quaternion.copy(mcu_quat);
-            astronaut2.quaternion.copy(quaternion2);
+            astronaut2.quaternion.copy(camera_quat); 
+            // // let eulerCamera = new THREE.Euler();  
+            // // set manually each axis from eulerCamera
+            // astronaut2.rotation.x = x_angle;
+            // astronaut2.rotation.y = -y_angle;
+            // astronaut2.rotation.z = -z_angle;
             time += 0.01;
             renderer.render(scene, camera);
         };
@@ -178,6 +176,7 @@
 <div class="card">
     <div class="card-body">
       <h5 class="card-title">IK</h5>
+    <p class="card-text">X angle: {x_angle.toFixed(2)} Y angle: {y_angle.toFixed(2)} Z angle: {z_angle.toFixed(2)}</p>
       <canvas bind:this={canvas} />
     </div>
   </div>
@@ -187,4 +186,4 @@
         width: 500px;
         height: 500px;
     }
-</style> -->
+</style>

@@ -1,7 +1,7 @@
 
 <script>
     // You can dynamically change this URL if needed
-    const videoStreamUrl = 'http://localhost:5000/video';
+    const videoStreamUrl = 'http://localhost:8080/my_camera';
   </script>
   
 

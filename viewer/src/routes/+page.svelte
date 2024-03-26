@@ -14,15 +14,8 @@
     });
 
 </script>
-
 <Navbar />
 <UdpTester />
-
-
-
-
-
-
   <div class="container">
     <div class="row">
       <div class="col-sm">
@@ -34,8 +27,8 @@
       <!-- <div class="col-xxl">
         <Chest />
       </div> -->
-      <!-- <div class="col-xxl">
+      <div class="col-xxl">
         <Ik />
-      </div> -->
+      </div>
     </div>
   </div>

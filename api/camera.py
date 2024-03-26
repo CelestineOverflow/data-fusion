@@ -69,6 +69,7 @@ class Camera:
             pose_data = d.pose_R, d.pose_t
             rvec, tvec = pose_data[0], pose_data[1]
             quaternion = sp.spatial.transform.Rotation.from_matrix(rvec).as_quat()
+
             rotation = sp.spatial.transform.Rotation.from_matrix(rvec).as_euler('xyz', degrees=self.as_degrees)
             x, y, z = rotation[0], rotation[1], rotation[2]
             cv2.circle(img, (int(d.center[0]), int(d.center[1])), 5, (0, 0, 255), -1)
@@ -85,7 +86,7 @@ class Camera:
             single_tag_data["position"]["x"] = tvec[0][0]
             single_tag_data["position"]["y"] = tvec[1][0]
             single_tag_data["position"]["z"] = tvec[2][0]
-            single_tag_data["quaternion"] = {"x": quaternion[0], "y": quaternion[1], "z": quaternion[2], "w": quaternion[3]}
+            single_tag_data["quaternion"] = {"x": quaternion[0], "y": -quaternion[1], "z": -quaternion[2], "w": quaternion[3]}
             # data[d.tag_id] = single_tag_data
             data["camera"][d.tag_id] = single_tag_data
         #check if there are any tags detected
@@ -101,7 +102,7 @@ if __name__ == "__main__":
     zeroconf_thread.start()
     #start the camera
     cap = cv2.VideoCapture(1)
-    stream = Stream("my_camera", size=(640, 480), quality=50, fps=30)
+    stream = Stream("my_camera", size=(640*2, 2*480), quality=50, fps=30)
     server = MjpegServer("localhost", 8080)
     server.add_stream(stream)
     server.start() 
@@ -117,11 +118,10 @@ if __name__ == "__main__":
                 break
     except KeyboardInterrupt:
         pass
-    finally:
-        cap.release()
-        cv2.destroyAllWindows()
-        zeroconf.close()
-        server.stop()
-        sock.close()
-        print("Camera service stopped")
+    cap.release()
+    cv2.destroyAllWindows()
+    zeroconf.close()
+    server.stop()
+    sock.close()
+    print("Camera service stopped")
 

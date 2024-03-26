@@ -8,6 +8,27 @@
 #define RAD_TO_DEG 57.295779513082320876 // 180 / PI
 #define TO_RAD(deg) ((deg) * DEG_TO_RAD) // Convert degrees to radians
 
+#define x_axis_flip
+#define y_axis_flip
+
+#ifdef x_axis_flip
+#define FLIP_X(x) (-(x))
+#else
+#define FLIP_X(x) (x)
+#endif
+
+#ifdef y_axis_flip
+#define FLIP_Y(y) (-(y))
+#else
+#define FLIP_Y(y) (y)
+#endif
+
+#ifdef z_axis_flip
+#define FLIP_Z(z) (-(z))
+#else
+#define FLIP_Z(z) (z)
+#endif
+
 // Define transformation macros as per your requirement
 // #define TRANSFORM_PITCH(pitch) (-TO_RAD(pitch) - PI / 2)
 // #define TRANSFORM_ROLL(roll) (TO_RAD(yaw)) // Assuming yaw is to be used for roll
@@ -93,14 +114,15 @@ void integrateGyroData()
     float dt = (currentTime - lastTime) / 1000000.0;
     lastTime = currentTime;
 
-    float gyroRateX = gx / gyroScaleFactor;
-    float gyroRateY = gy / gyroScaleFactor;
-    float gyroRateZ = gz / gyroScaleFactor;
+    float gyroRateX = FLIP_X(gx) / gyroScaleFactor;
+    float gyroRateY = FLIP_Y(gy) / gyroScaleFactor;
+    float gyroRateZ = FLIP_Z(gz) / gyroScaleFactor;
 
     gyroX -= gyroRateX * dt;
     gyroY += gyroRateY * dt;
     gyroZ += gyroRateZ * dt;
 }
+
 float valueSwitch = 1.0f;
 float targetQuaternion[4] = {1.0f, 0.0f, 0.0f, 0.0f};
 
@@ -114,10 +136,9 @@ void IntegrateDataMadgwick()
     bmi160.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
     // Convert gyroscope data to rad/s
-    float gyroRadX = gx / gyroScaleFactor * DEG_TO_RAD;
-    float gyroRadY = gy / gyroScaleFactor * DEG_TO_RAD;
-    float gyroRadZ = gz / gyroScaleFactor * DEG_TO_RAD;
-
+    float gyroRadX = FLIP_X(gx) / gyroScaleFactor * DEG_TO_RAD;
+    float gyroRadY = FLIP_Y(gy) / gyroScaleFactor * DEG_TO_RAD;
+    float gyroRadZ = FLIP_Z(gz) / gyroScaleFactor * DEG_TO_RAD;
     // Update the Madgwick filter
     madgwickFilter.update(quaternion, ax, ay, az, gyroRadX, gyroRadY, gyroRadZ, dt);
     // Update the target quaternion if external quaternion is set
@@ -156,7 +177,7 @@ void eulerToQuaternion(float yaw, float pitch, float roll, float *q)
 
 
 
-
+static float InverseoffsetXQuaternionInverse[4] = {0.70710678118, -0.70710678118, 0, 0};
 void setOrientationOffset(float w, float x, float y, float z)
 {
     targetQuaternion[0] = w;
@@ -176,7 +197,11 @@ void setMacAddress(String mac)
 }
 
 
+
+
 #include <ArduinoJson.h>
+
+static float offsetXQuaternion[4] = {0.70710678118, 0.70710678118, 0, 0};
 
 void sendBMIData(int (*sendData)(String))
 {
@@ -185,10 +210,17 @@ void sendBMIData(int (*sendData)(String))
     JsonObject imu = doc.createNestedObject("imu");
     JsonObject macObject = imu.createNestedObject(macAddress.c_str());
     JsonObject quaternionObject = macObject.createNestedObject("quaternion");
-    quaternionObject["x"] = quaternion[1];
-    quaternionObject["y"] = quaternion[2];
-    quaternionObject["z"] = quaternion[3];
-    quaternionObject["w"] = quaternion[0];
+    // Your current orientation quaternion (assuming quaternion is globally defined or accessible)
+    // float quaternion[4] = {w, x, y, z};
+    // Quaternion to store the result after applying the offset
+    float resultQuaternion[4];
+
+    // Apply the offset
+    multiplyQuaternions(offsetXQuaternion, quaternion, resultQuaternion);
+    quaternionObject["x"] = resultQuaternion[1];
+    quaternionObject["y"] = resultQuaternion[2];
+    quaternionObject["z"] = resultQuaternion[3];
+    quaternionObject["w"] = resultQuaternion[0];
 
     String output;
     serializeJson(doc, output);
