@@ -18,11 +18,13 @@ clients = set()
 import atexit
 import sys
 import time
+import signal
 
 # File paths for output
 case_type = "static-camera"
 timestamp = time.strftime("%Y%m%d-%H%M%S")
-imu_output = f"imu_output_{case_type}_{timestamp}.txt"
+imu_output = f"D:/data-fusion/post-processing/external_input/imu_output_{case_type}_{timestamp}.txt"
+latency_output = f"D:/data-fusion/post-processing/static_case_revised/latency_output_{case_type}_{timestamp}.txt"
 
 
 def cleanup(file):
@@ -34,10 +36,10 @@ routing_table = {
             "imu": {
                 "ip": "localhost",
                 "port": 4210,
-                "id": "083A8DCCC2F4"
+                "id": "083A8DCCC7B5"
             },
             "camera": {
-                "id": "16",}
+                "id": "2",}
         },
     }
 }
@@ -60,6 +62,13 @@ def imuOutput2File(data):
     file = open(imu_output, 'a')
     timestamp = time.perf_counter()
     file.write(str(timestamp) + '   ' +  json.dumps(data)+ '\n')
+    file.flush()
+    file.close()
+    
+def latencyOutput2File(data):
+    file = open(latency_output, 'a')
+    timestamp = time.perf_counter()
+    file.write(str(timestamp) + '   ' + data + '\n')
     file.flush()
     file.close()
 
@@ -88,8 +97,10 @@ def udp_server(ip, port, service_name):
                 
                 if "imu" in parsed_data:
                     latest_data["imu"] = parsed_data["imu"]
+                    latencyOutput2File('imu')
                 elif "camera" in parsed_data:
                     latest_data["camera"] = parsed_data["camera"]
+                    latencyOutput2File('camera')
                 else:
                     print("Unknown data type")
                     pass
@@ -138,7 +149,7 @@ def udp_server(ip, port, service_name):
                             #send_orientation_data(imu_details["ip"], imu_details["port"], quat["w"], quat["x"], quat["y"], quat["z"])
                             # print(f"Sent camera data from {camera_id} to IMU {details['imu']['id']}")
                             
-                imuOutput2File(latest_data)
+                # imuOutput2File(latest_data)
             except json.JSONDecodeError:
                 print(f"Error parsing data: {data}")
                 continue
@@ -218,9 +229,20 @@ def t():
     asyncio.run(main())
     
 
+def shutdown():
+    print("Shutting down...")
+    shutdown_flag.set()  # Signal all threads to shut down
+    # Clean up resources, close sockets, files, etc.
+    # You might need to signal your threads or async loops to check the shutdown_flag and exit cleanly
+    sys.exit(0)  # Forcefully exits the script. Use if necessary, otherwise let threads exit gracefully.
+
+
 
 if __name__ == '__main__':
     try:
+        shutdown_timer = threading.Timer(1*60, shutdown)
+        shutdown_timer.start()  # Start the timer
+        start_time = time.time()
         local_network_ip = socket.gethostbyname(socket.gethostname())
         # Check ports for availability
         # Global UDP listener ports
@@ -240,8 +262,8 @@ if __name__ == '__main__':
         for thread in threads:
             thread.start()
 
-        for thread in threads:
-            thread.join()
+        while not shutdown_flag.is_set():
+            time.sleep(1)  # Main thread can sleep or perform other tasks, checking periodically if it's time to shut down
     except:
         shutdown_flag.set()
         for thread in threads:

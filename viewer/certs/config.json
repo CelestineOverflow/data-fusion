@@ -1,0 +1,14 @@
+{
+  "record": {
+    "hosts": [
+      "localhost",
+      "192.168.31.58",
+      "127.0.0.1"
+    ],
+    "hash": {
+      "key": "a832bc328d44d324b349ebf6ed57fbd69b3f757011df1ee071385f8302541f8f",
+      "cert": "559bb8ccf8fe0bd73126dbc063d8f32e21c8c56a58bdacd74889d2709c168f1f"
+    }
+  },
+  "configFilePath": "D:\\data-fusion\\viewer\\certs\\config.json"
+}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Camera from './Camera.svelte';
+    import Camera from "./Camera.svelte";
     import { CCDIKHelper } from "three/examples/jsm/animation/CCDIKSolver.js";
     import * as THREE from "three";
     import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -9,7 +9,7 @@
     import { onMount } from "svelte";
 
     let canvas: HTMLCanvasElement;
-    import {raw_data} from './../stores/websocket.js';
+    import { raw_data } from "./../stores/websocket.js";
 
     let mcu_quat = new THREE.Quaternion();
     let camera_quat = new THREE.Quaternion();
@@ -18,20 +18,20 @@
     let z_angle = 0;
     let eulerCamera = new THREE.Euler();
     raw_data.subscribe((value) => {
-        if (value.imu) {
-            let quat = value.imu['083A8DCCC2F4'].quaternion;
-            mcu_quat.set(quat.x, quat.y, quat.z, quat.w);
-            //set x_angle, y_angle, z_angle
-            
-        }
-        if (value.camera) {
-            let quat = value.camera['16'].quaternion;
-            camera_quat.set(quat.x, quat.y, quat.z, quat.w);
-
+        try {
+            if (value.imu) {
+                let quat = value.imu["083A8DCCC7B5"].quaternion;
+                mcu_quat.set(quat.x, quat.y, quat.z, quat.w);
+                //set x_angle, y_angle, z_angle
+            }
+            if (value.camera) {
+                let quat = value.camera["2"].quaternion;
+                camera_quat.set(quat.x, quat.y, quat.z, quat.w);
+            }
+        } catch (error) {
+            console.log(error);
         }
     });
-
-    
 
     onMount(() => {
         // setup scene
@@ -40,7 +40,7 @@
             75,
             canvas.clientWidth / canvas.clientHeight,
             0.1,
-            1000
+            1000,
         );
 
         const renderer = new THREE.WebGLRenderer({
@@ -75,17 +75,16 @@
         ];
 
         // Create a canvas element to use as a texture
-        const canvas2 = document.createElement('canvas');
+        const canvas2 = document.createElement("canvas");
         canvas2.width = 256;
         canvas2.height = 256;
-        const context = canvas2.getContext('2d');
+        const context = canvas2.getContext("2d");
 
         // Create a texture with a different color for each face of the cube
         colors.forEach((color, index) => {
             if (context) {
                 context.fillStyle = `#${color.toString(16)}`;
             }
-
         });
 
         // Create the cube geometry and material
@@ -93,7 +92,6 @@
         const cubeMaterial = new THREE.MeshStandardMaterial({
             map: new THREE.CanvasTexture(canvas),
         });
-
 
         //add light
         const light = new THREE.AmbientLight(0xffffff, 1);
@@ -125,7 +123,7 @@
             // called when loading has errors
             function (error) {
                 console.error("An error happened", error);
-            }
+            },
         );
 
         let astronaut2 = new THREE.Object3D();
@@ -148,17 +146,16 @@
             // called when loading has errors
             function (error) {
                 console.error("An error happened", error);
-            }
+            },
         );
-
 
         let time = 0;
 
         const animate = function () {
             requestAnimationFrame(animate);
             astronaut.quaternion.copy(mcu_quat);
-            astronaut2.quaternion.copy(camera_quat); 
-            // // let eulerCamera = new THREE.Euler();  
+            astronaut2.quaternion.copy(camera_quat);
+            // // let eulerCamera = new THREE.Euler();
             // // set manually each axis from eulerCamera
             // astronaut2.rotation.x = x_angle;
             // astronaut2.rotation.y = -y_angle;
@@ -171,15 +168,16 @@
     });
 </script>
 
-
-
 <div class="card">
     <div class="card-body">
-      <h5 class="card-title">IK</h5>
-    <p class="card-text">X angle: {x_angle.toFixed(2)} Y angle: {y_angle.toFixed(2)} Z angle: {z_angle.toFixed(2)}</p>
-      <canvas bind:this={canvas} />
+        <h5 class="card-title">IK</h5>
+        <p class="card-text">
+            X angle: {x_angle.toFixed(2)} Y angle: {y_angle.toFixed(2)} Z angle:
+            {z_angle.toFixed(2)}
+        </p>
+        <canvas bind:this={canvas} />
     </div>
-  </div>
+</div>
 
 <style>
     canvas {

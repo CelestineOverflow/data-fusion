@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^2.0.0",
+    "@sveltejs/adapter-static": "^3.0.1",
     "@sveltejs/kit": "^1.5.0",
     "@types/three": "^0.152.0",
     "autoprefixer": "^10.4.14",
@@ -21,10 +22,12 @@
     "tailwindcss": "^3.3.2",
     "tslib": "^2.4.1",
     "typescript": "^5.0.0",
-    "vite": "^4.3.0"
+    "vite": "^4.3.0",
+    "vite-plugin-mkcert": "^1.17.5"
   },
   "type": "module",
   "dependencies": {
+    "@aminere/fullik": "^1.3.3",
     "dotenv": "^16.0.3",
     "three": "^0.152.2"
   }
