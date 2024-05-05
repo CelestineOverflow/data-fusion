@@ -3,26 +3,19 @@
     import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
     import { onMount } from "svelte";
     import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
-    import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-    import { CCDIKSolver } from "three/examples/jsm/animation/CCDIKSolver.js";
-    import { SkinnedMesh } from "three";
+    import { animateModel, add_rigged_model } from "./RiggedModel.js";
 
     let canvas: HTMLCanvasElement;
     let renderer: THREE.WebGLRenderer;
     let scene: THREE.Scene;
     let camera: THREE.PerspectiveCamera;
     let controls: OrbitControls;
-    let defaultBoneDirection: THREE.Vector3;
-    let defaultBoneLength: number;
-    let target: THREE.Vector3;
-    let upperArmBone: any;
-    let forearmBone: any;
-    let handBone: any;
-    let target_handL: any;
-    let transformControls: TransformControls;
-    let orbitControls: OrbitControls;
-    let solver: CCDIKSolver;
-    let cube: THREE.Mesh;
+    //righ hand
+    let cubeR: THREE.Mesh;
+    let transformControlsR: TransformControls;
+    //left hand
+    let cubeL: THREE.Mesh;
+    let transformControlsL: TransformControls;
 
     onMount(() => {
         init();
@@ -31,124 +24,7 @@
             window.removeEventListener("resize", resize);
         };
     });
-    let availableBones: string[] = [];
-    let model: any;
 
-    function findBone(root, name) {
-        let target = null;
-        root.traverse((node) => {
-            if (node.name === name) {
-                target = node;
-            }
-        });
-        return target;
-    }
-    let skeleton: any;
-
-    function add_rigged_model() {
-        const loader = new GLTFLoader();
-        loader.load("test_ik3.glb", function (gltf) {
-            model = gltf.scene;
-            let skinnedMesh;
-            model.traverse((node) => {
-                if (node.name === "lowman_shoes") {
-                    node.traverse((child) => {
-                        if (child.type === "SkinnedMesh") {
-                            skinnedMesh = child;
-                        }
-                    });
-                }
-            });
-
-            if (skinnedMesh) {
-                console.log("SkinnedMesh found", skinnedMesh);
-                // model.scale.set(20, 20, 20);
-                console.log(skinnedMesh.skeleton.bones);
-                for (let i = 0; i < skinnedMesh.skeleton.bones.length; i++) {
-                    if (skinnedMesh.skeleton.bones[i].name === "upper_armL") {
-                        upperArmBone = skinnedMesh.skeleton.bones[i];
-                    } else if (
-                        skinnedMesh.skeleton.bones[i].name === "forearmL"
-                    ) {
-                        forearmBone = skinnedMesh.skeleton.bones[i];
-                    } else if (skinnedMesh.skeleton.bones[i].name === "handL") {
-                        handBone = skinnedMesh.skeleton.bones[i];
-                    } else if (
-                        skinnedMesh.skeleton.bones[i].name ===
-                        "index_target_handL"
-                    ) {
-                        target_handL = skinnedMesh.skeleton.bones[i];
-                    }
-                }
-                if (upperArmBone && forearmBone && handBone) {
-                    console.log(
-                        "Bones found:",
-                        upperArmBone,
-                        forearmBone,
-                        handBone,
-                    );
-                    let index_upperArm =
-                        skinnedMesh.skeleton.bones.indexOf(upperArmBone);
-                    let index_forearm =
-                        skinnedMesh.skeleton.bones.indexOf(forearmBone);
-                    let index_hand =
-                        skinnedMesh.skeleton.bones.indexOf(handBone);
-                    let index_target_handL =
-                        skinnedMesh.skeleton.bones.indexOf(target_handL);
-                    console.log(
-                        "Indices:",
-                        index_upperArm,
-                        index_forearm,
-                        index_hand,
-                        index_target_handL,
-                    );
-
-                    // Define IK Chains
-
-                    const iks = [
-                        {
-                            target: index_target_handL, // "target"
-                            effector: index_hand, // "bone3"
-                            links: [
-                                {
-                                    index: index_forearm,
-                                    rotationMin: new THREE.Vector3(
-                                        1.2,
-                                        -1.8,
-                                        -0.4,
-                                    ),
-                                    rotationMax: new THREE.Vector3(
-                                        1.7,
-                                        -1.1,
-                                        0.3,
-                                    ),
-                                },
-                                { index: index_upperArm,
-                                    
-                                },
-                            ], // "bone2", "bone1", "bone0"
-                        },
-                    ];
-
-                    solver = new CCDIKSolver(skinnedMesh, iks);
-                } else {
-                    console.error("Error: One or more bones not found.");
-                }
-                //add reference to the target
-                // let axis_helper = new THREE.AxesHelper(10);
-                // axis_helper.position.copy(target_handL.position);
-                // scene.add(axis_helper);
-
-                // Visualize skeleton
-                skeleton = new THREE.SkeletonHelper(model);
-                skeleton.visible = true;
-                scene.add(skeleton);
-                scene.add(model);
-            } else {
-                console.error("SkinnedMesh not found.");
-            }
-        });
-    }
     function init() {
         renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -177,27 +53,48 @@
         //add global light
         const light = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(light);
-        add_rigged_model();
-        //orbitControls = new OrbitControls( camera, renderer.domElement );
-        transformControls = new TransformControls(camera, renderer.domElement);
-        transformControls.size = 0.75;
-        transformControls.space = "world";
-        cube = new THREE.Mesh(
+        add_rigged_model(scene);
+        transformControlsR = new TransformControls(camera, renderer.domElement);
+        transformControlsR.size = 0.75;
+        transformControlsR.space = "world";
+        //right hand
+        cubeR = new THREE.Mesh(
             new THREE.BoxGeometry(0.1, 0.1, 0.1),
             new THREE.MeshBasicMaterial({ color: 0x00ff00 }),
         );
-        cube.position.set(3, 4, 0);
-        scene.add(cube);
-        transformControls.attach(cube);
-        scene.add(transformControls);
-        transformControls.addEventListener(
+        cubeR.position.set(3, 4, 0);
+        scene.add(cubeR);
+        transformControlsR.attach(cubeR);
+        scene.add(transformControlsR);
+        transformControlsR.addEventListener(
             "mouseDown",
             () => (controls.enabled = false),
         );
-        transformControls.addEventListener(
+        transformControlsR.addEventListener(
             "mouseUp",
             () => (controls.enabled = true),
         );
+        //left hand
+        cubeL = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, 0.1, 0.1),
+            new THREE.MeshBasicMaterial({ color: 0x0000ff }),
+        );
+        cubeL.position.set(-3, 4, 0);
+        scene.add(cubeL);
+        transformControlsL = new TransformControls(camera, renderer.domElement);
+        transformControlsL.size = 0.75;
+        transformControlsL.space = "world";
+        transformControlsL.attach(cubeL);
+        scene.add(transformControlsL);
+        transformControlsL.addEventListener(
+            "mouseDown",
+            () => (controls.enabled = false),
+        );
+        transformControlsL.addEventListener(
+            "mouseUp",
+            () => (controls.enabled = true),
+        );
+
         render();
     }
 
@@ -211,9 +108,7 @@
         requestAnimationFrame(render);
         controls.update();
         renderer.render(scene, camera);
-        solver.update();
-
-        target_handL.position.copy(cube.position);
+        animateModel(cubeR.position, cubeL.position);
     }
 </script>
 
