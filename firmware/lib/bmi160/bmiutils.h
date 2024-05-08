@@ -8,8 +8,8 @@
 #define RAD_TO_DEG 57.295779513082320876 // 180 / PI
 #define TO_RAD(deg) ((deg) * DEG_TO_RAD) // Convert degrees to radians
 
-#define x_axis_flip
-#define y_axis_flip
+// #define x_axis_flip
+// #define y_axis_flip
 
 #ifdef x_axis_flip
 #define FLIP_X(x) (-(x))
@@ -134,6 +134,10 @@ void IntegrateDataMadgwick()
 
     int16_t ax, ay, az, gx, gy, gz;
     bmi160.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    //for debugging purposes disable accelerometer data
+    ax = 0;
+    ay = 0;
+    az = 0;
 
     // Convert gyroscope data to rad/s
     float gyroRadX = FLIP_X(gx) / gyroScaleFactor * DEG_TO_RAD;

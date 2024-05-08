@@ -19,7 +19,7 @@ import atexit
 import sys
 import time
 import signal
-
+import ssl
 # File paths for output
 case_type = "static-camera"
 timestamp = time.strftime("%Y%m%d-%H%M%S")
@@ -217,7 +217,11 @@ async def websocket_server(websocket, path):
 
 async def main():
     # Set up WebSocket server
-    start_server = websockets.serve(websocket_server, "localhost", 6789)
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain(r'D:\data-fusion\viewer\certs\cert.pem', r'D:\data-fusion\viewer\certs\dev.pem')  # Specify the paths to your cert and key files
+
+    start_server = websockets.serve(websocket_server, "192.168.31.58", 1456, ssl=ssl_context)
+    # start_server = websockets.serve(websocket_server, "localhost", 6789)
 
     # Run the server and handle the queue concurrently
     await asyncio.gather(
@@ -240,8 +244,8 @@ def shutdown():
 
 if __name__ == '__main__':
     try:
-        shutdown_timer = threading.Timer(1*60, shutdown)
-        shutdown_timer.start()  # Start the timer
+        # shutdown_timer = threading.Timer(1*60, shutdown)
+        # shutdown_timer.start()  # Start the timer
         start_time = time.time()
         local_network_ip = socket.gethostbyname(socket.gethostname())
         # Check ports for availability
@@ -263,8 +267,10 @@ if __name__ == '__main__':
             thread.start()
 
         while not shutdown_flag.is_set():
-            time.sleep(1)  # Main thread can sleep or perform other tasks, checking periodically if it's time to shut down
-    except:
-        shutdown_flag.set()
-        for thread in threads:
-            thread.join()
+            time.sleep(1)  # Main fthread can sleep or perform other tasks, checking periodically if it's time to shut down
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
+    #     shutdown_flag.set()
+    #     for thread in threads:
+    #         thread.join()

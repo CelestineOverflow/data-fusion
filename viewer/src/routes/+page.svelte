@@ -15,6 +15,7 @@
     import TestXr from "../components/TestXR.svelte";
     import Iktesting from "../components/Iktesting.svelte";
     import IkSolverT from "../components/IK_Solver_t.svelte";
+    import Cube from '../components/Cube.svelte';
     let data : any;
     onMount(() => {
         connectToWebSocket();
@@ -61,7 +62,8 @@
       <!-- <div class="col-xxl">
         <Ik />
       </div> -->
-    <IK_SolverT />
-    <!-- <MergedXR_IK /> -->
+    <!-- <IK_SolverT /> -->
+    <!-- <Cube /> -->
+    <MergedXR_IK />
     </div>
   </div>
