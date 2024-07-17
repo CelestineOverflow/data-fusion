@@ -1,10 +1,9 @@
 <script lang="ts">
 
-        import {limbs_data } from "../stores/body";
-
+        import { raw_data} from "../stores/websocket";
         let data : any;
 
-        limbs_data.subscribe((value) => {
+        raw_data.subscribe((value) => {
                 data = JSON.stringify(value, null, 2);
         });
 </script>

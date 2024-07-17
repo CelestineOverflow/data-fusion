@@ -21,27 +21,28 @@ let quat2 = new THREE.Quaternion(); // Will hold the quaternion from "AC0BFBDBA9
 export let socket2;
 export let output_quaternion = writable([0, 0, 0, 0]);
 export let output_quaternion2 = writable([0, 0, 0, 0]);
+export let output_quaternion3 = writable([0, 0, 0, 0]);
 
 function applyIMURotationWithOffset(imuData, outputquat) {
-    if (!imuData) {
-        return;
-    }
-    let lastQuaternion = imuData.clone(); // Save the current quaternion for the next iteration
+    // if (!imuData) {
+    //     return;
+    // }
+    // let lastQuaternion = imuData.clone(); // Save the current quaternion for the next iteration
 
-    // Create the rotation quaternion for the initial rotation
-    let rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+    // // Create the rotation quaternion for the initial rotation
+    // let rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
 
-    // Apply the fixed rotation to the IMU data quaternion
-    lastQuaternion.premultiply(rotationQuaternion);
-    //rotate 180 in x axis
-    let rotationQuaternion2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
-    lastQuaternion.premultiply(rotationQuaternion2);
+    // // Apply the fixed rotation to the IMU data quaternion
+    // lastQuaternion.premultiply(rotationQuaternion);
+    // //rotate 180 in x axis
+    // let rotationQuaternion2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+    // lastQuaternion.premultiply(rotationQuaternion2);
 
-    // Swap Y and X axis in the quaternion; this also inverts the new Y-axis (which is the original X)
-    let swappedAndInvertedQuaternion = new THREE.Quaternion(-lastQuaternion.y, -lastQuaternion.x, -lastQuaternion.z, lastQuaternion.w);
+    // // Swap Y and X axis in the quaternion; this also inverts the new Y-axis (which is the original X)
+    // let swappedAndInvertedQuaternion = new THREE.Quaternion(-lastQuaternion.y, -lastQuaternion.x, -lastQuaternion.z, lastQuaternion.w);
 
-    // Set the astronaut's rotation from the adjusted quaternion
-    outputquat.set([swappedAndInvertedQuaternion.x, swappedAndInvertedQuaternion.y, swappedAndInvertedQuaternion.z, swappedAndInvertedQuaternion.w]);
+    // // Set the astronaut's rotation from the adjusted quaternion
+    // outputquat.set([swappedAndInvertedQuaternion.x, swappedAndInvertedQuaternion.y, swappedAndInvertedQuaternion.z, swappedAndInvertedQuaternion.w]);
 }
 function extractQuaternionFromIMUData(id, data) {
     if (data.imu && data.imu[id] && data.imu[id].quaternion) {
@@ -55,6 +56,19 @@ function extractQuaternionFromIMUData(id, data) {
     return null;
 }
 
+function extractQuaternionFromCameraData(cameraId, data) {
+    // Check if the necessary data exists to avoid runtime errors
+    if (data.camera && data.camera[cameraId] && data.camera[cameraId].quaternion) {
+        // Extract the quaternion data
+        const q = data.camera[cameraId].quaternion;
+        // Return a new quaternion object
+        return new THREE.Quaternion(q.x, q.y, q.z, q.w);
+    }
+    // Return null if the data is not available
+    return null;
+}
+
+
 export function connectToWebSocket() {
     let socket = new WebSocket("wss://192.168.31.58:1456");
     // socket2 = new WebSocket("wss://192.168.31.58:1456");
@@ -65,6 +79,16 @@ export function connectToWebSocket() {
             raw_data.set(data);           
             applyIMURotationWithOffset( extractQuaternionFromIMUData("98CDAC1D78E6", data), output_quaternion);
             applyIMURotationWithOffset( extractQuaternionFromIMUData("AC0BFBDBA9A4", data), output_quaternion2);
+            // applyIMURotationWithOffset( extractQuaternionFromIMUData("083A8DCCC7B5", data), output_quaternion);
+            let testquat = extractQuaternionFromIMUData("083A8DCCC7B5", data);
+            if (testquat) {
+                output_quaternion.set([testquat.x, testquat.y, testquat.z, testquat.w]);
+                console.log(testquat);
+            }
+            let camera_quaternion = extractQuaternionFromCameraData("2", data);
+            if (camera_quaternion) {
+                output_quaternion3.set([camera_quaternion.x, camera_quaternion.y, camera_quaternion.z, camera_quaternion.w]);
+            }
 
         } catch (error) {
             console.log(error);

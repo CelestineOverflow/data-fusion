@@ -2,12 +2,12 @@
   "record": {
     "hosts": [
       "localhost",
-      "192.168.31.58",
+      "192.168.2.57",
       "127.0.0.1"
     ],
     "hash": {
-      "key": "a832bc328d44d324b349ebf6ed57fbd69b3f757011df1ee071385f8302541f8f",
-      "cert": "559bb8ccf8fe0bd73126dbc063d8f32e21c8c56a58bdacd74889d2709c168f1f"
+      "key": "d62e7805c54bcb8417af1fa5b829ae6bcc2d7817235ddb953be7557fab3a8e65",
+      "cert": "b7ae8e9e722795dd32b9bc07436e05c19e3af421f784e38af0427274c315dfd5"
     }
   },
   "configFilePath": "D:\\data-fusion\\viewer\\certs\\config.json"

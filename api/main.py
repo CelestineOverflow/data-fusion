@@ -1,6 +1,7 @@
 import socket
 from time import sleep
 from scipy.spatial.transform import Rotation as R
+import numpy as np
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
 import threading
 import queue
@@ -25,7 +26,8 @@ case_type = "static-camera"
 timestamp = time.strftime("%Y%m%d-%H%M%S")
 imu_output = f"D:/data-fusion/post-processing/external_input/imu_output_{case_type}_{timestamp}.txt"
 latency_output = f"D:/data-fusion/post-processing/static_case_revised/latency_output_{case_type}_{timestamp}.txt"
-
+local_network_ip = socket.gethostbyname(socket.gethostname())
+print(f"Local network IP: {local_network_ip}")
 
 def cleanup(file):
     file.close
@@ -40,6 +42,24 @@ routing_table = {
             },
             "camera": {
                 "id": "2",}
+        },
+        "leftUpperArm": {
+            "imu": {
+                "ip": "localhost",
+                "port": 4210,
+                "id": "083A8DCCC2F4"
+            },
+            "camera": {
+                "id": "1",}
+        },
+        "rigthUpperArm": {
+            "imu": {
+                "ip": "localhost",
+                "port": 4210,
+                "id": "98CDAC1D78E6"
+            },
+            "camera": {
+                "id": "3",}
         },
     }
 }
@@ -73,11 +93,11 @@ def latencyOutput2File(data):
     file.close()
 
 def send_orientation_data(ip, port, w, x, y, z):
+    # Prepare message
     message = f"{w},{x},{y},{z}"
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.sendto(message.encode(), (ip, port))
-        print(f"Sent: {message}")
     except Exception as e:
         print(f"Error: {e}")
     finally:
@@ -96,11 +116,14 @@ def udp_server(ip, port, service_name):
                 parsed_data = json.loads(data.decode())
                 
                 if "imu" in parsed_data:
-                    latest_data["imu"] = parsed_data["imu"]
-                    latencyOutput2File('imu')
+                    if "imu" in latest_data:
+                        latest_data["imu"].update(parsed_data["imu"])  # Updates only the fields present in the new imu data
+                    else:
+                        latest_data["imu"] = parsed_data["imu"]  # Initializes imu data if not already present
+                    # latencyOutput2File('imu')
                 elif "camera" in parsed_data:
                     latest_data["camera"] = parsed_data["camera"]
-                    latencyOutput2File('camera')
+                    # latencyOutput2File('camera')
                 else:
                     print("Unknown data type")
                     pass
@@ -112,6 +135,7 @@ def udp_server(ip, port, service_name):
                         for part, details in routing_table["bodyPart"].items():
                             if details["imu"]["id"] == imu_id:
                                 details["imu"]["ip"] = addr[0]
+                                # print(f"Received IMU data from {imu_id} at {addr[0]}:{addr[1]}")
                                 
                 
                 # # Handling camera data
@@ -124,27 +148,27 @@ def udp_server(ip, port, service_name):
                         if details["camera"]["id"] == camera_id:
                             imu_details = details["imu"]
                             quat = camera_data["quaternion"]
-                            #rotate the quat by -90 x-axis
-                            # Create a rotation for -90 degrees around the X-axis
-                            rotation_x_minus_90 = R.from_euler('x', -90, degrees=True)
+                            
+                            quat_test2 = R.from_quat([quat["x"], quat["y"], quat["z"], quat["w"]])
 
-                            # Convert your quaternion to a Rotation object
-                            original_rotation = R.from_quat([quat["x"], quat["y"], quat["z"], quat["w"]])
+                            # Create a quaternion from an axis-angle representation
+                            axis = [1, 0, 0]
+                            angle = np.pi / 2
+                            rotation_quat = R.from_rotvec(np.multiply(axis, angle))
 
-                            # Apply the -90 degrees X rotation to your original quaternion
-                            rotated = rotation_x_minus_90 * original_rotation
-
-                            # Convert the result back to quaternion format
-                            rotated_quat = rotated.as_quat()  # This returns [x, y, z, w]
-
+                            # Premultiply the original quaternion by the new quaternion
+                            resulting_quat = rotation_quat * quat_test2
+                        
                             # Now use the rotated quaternion in your function call
+                            print(f"Sending orientation data to IMU {imu_details}")
+                            
                             send_orientation_data(
                                 imu_details["ip"], 
                                 imu_details["port"], 
-                                rotated_quat[3],  # w
-                                rotated_quat[0],  # x
-                                rotated_quat[1],  # y
-                                rotated_quat[2]   # z
+                                resulting_quat.as_quat()[3],
+                                resulting_quat.as_quat()[0],
+                                resulting_quat.as_quat()[1],
+                                resulting_quat.as_quat()[2]
                             )
                             #send_orientation_data(imu_details["ip"], imu_details["port"], quat["w"], quat["x"], quat["y"], quat["z"])
                             # print(f"Sent camera data from {camera_id} to IMU {details['imu']['id']}")
@@ -218,9 +242,9 @@ async def websocket_server(websocket, path):
 async def main():
     # Set up WebSocket server
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_context.load_cert_chain(r'D:\data-fusion\viewer\certs\cert.pem', r'D:\data-fusion\viewer\certs\dev.pem')  # Specify the paths to your cert and key files
-
-    start_server = websockets.serve(websocket_server, "192.168.31.58", 1456, ssl=ssl_context)
+    ssl_context.load_cert_chain(r'..\front_end\cert.pem', r'D:\data-fusion\front_end\dev.pem')  # Specify the paths to your cert and key files
+    global local_network_ip
+    start_server = websockets.serve(websocket_server, local_network_ip, 1456, ssl=ssl_context)
     # start_server = websockets.serve(websocket_server, "localhost", 6789)
 
     # Run the server and handle the queue concurrently
@@ -247,7 +271,7 @@ if __name__ == '__main__':
         # shutdown_timer = threading.Timer(1*60, shutdown)
         # shutdown_timer.start()  # Start the timer
         start_time = time.time()
-        local_network_ip = socket.gethostbyname(socket.gethostname())
+        print(f"Local network IP: {local_network_ip}")
         # Check ports for availability
         # Global UDP listener ports
         imu_udp_listener_port = find_available_port(local_network_ip, 6969)

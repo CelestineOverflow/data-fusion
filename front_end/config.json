@@ -1,0 +1,14 @@
+{
+  "record": {
+    "hosts": [
+      "localhost",
+      "192.168.31.58",
+      "127.0.0.1"
+    ],
+    "hash": {
+      "key": "ecc8e7718405b490ff55fa7e9992cc40c638e41c0bdbf9592cc1d938307e5cf7",
+      "cert": "5e8370a31e778ff5169104ff837f052da007f27dc2624c647dbf602589809b52"
+    }
+  },
+  "configFilePath": "D:\\data-fusion\\front_end\\config.json"
+}

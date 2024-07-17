@@ -49,7 +49,7 @@ Madgwick<float> madgwickFilter;
 bool externalQuaternionSet = false;
 
 // Quaternion to hold the orientation
-float quaternion[4] = {1.0f, 0.0f, 0.0f, 0.0f};
+float quaternion[4] = {1.0f, 0.0f, 0.0f, 0.0f}; // w, x, y, z
 
 void calibrateBMI()
 {
@@ -133,16 +133,23 @@ void IntegrateDataMadgwick()
     lastTime = currentTime;
 
     int16_t ax, ay, az, gx, gy, gz;
-    bmi160.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-    //for debugging purposes disable accelerometer data
-    ax = 0;
-    ay = 0;
-    az = 0;
-
+    // X and Y axes are swapped in both accelerometer and gyroscope data
+    bmi160.getMotion6(&ay, &ax, &az, &gy, &gx, &gz);
+    //ay ax az
+    ax = FLIP_X(ax);
+    ay = FLIP_Y(ay);
+    az = FLIP_Z(az);
+    // Serial.print("ax: ");
+    // Serial.print(ax);
+    // Serial.print(" ay: ");
+    // Serial.print(ay);
+    // Serial.print(" az: ");
+    // Serial.println(az);
     // Convert gyroscope data to rad/s
     float gyroRadX = FLIP_X(gx) / gyroScaleFactor * DEG_TO_RAD;
     float gyroRadY = FLIP_Y(gy) / gyroScaleFactor * DEG_TO_RAD;
     float gyroRadZ = FLIP_Z(gz) / gyroScaleFactor * DEG_TO_RAD;
+
     // Update the Madgwick filter
     madgwickFilter.update(quaternion, ax, ay, az, gyroRadX, gyroRadY, gyroRadZ, dt);
     // Update the target quaternion if external quaternion is set
@@ -156,6 +163,52 @@ void IntegrateDataMadgwick()
         }
     }
 }
+
+void IntegrateDataGyroOnly()
+{
+    long currentTime = micros();
+    float dt = (currentTime - lastTime) / 1000000.0f; // Convert microseconds to seconds
+    lastTime = currentTime;
+
+    int16_t ax, ay, az, gx, gy, gz;
+    // X and Y axes are swapped in both accelerometer and gyroscope data
+    bmi160.getMotion6(&ay, &ax, &az, &gy, &gx, &gz);
+    //ay ax az
+    ax = FLIP_X(ax);
+    ay = FLIP_Y(ay);
+    az = FLIP_Z(az);
+    // Serial.print("ax: ");
+    // Serial.print(ax);
+    // Serial.print(" ay: ");
+    // Serial.print(ay);
+    // Serial.print(" az: ");
+    // Serial.println(az);
+    // Convert gyroscope data to rad/s
+    float gyroRadX = FLIP_X(gx) / gyroScaleFactor * DEG_TO_RAD;
+    float gyroRadY = FLIP_Y(gy) / gyroScaleFactor * DEG_TO_RAD;
+    float gyroRadZ = FLIP_Z(gz) / gyroScaleFactor * DEG_TO_RAD;
+
+
+    // Rate of change of quaternion from gyroscope
+    float qDot1 = 0.5f * (-quaternion[1] * gyroRadX - quaternion[2] * gyroRadY - quaternion[3] * gyroRadZ);
+    float qDot2 = 0.5f * (quaternion[0] * gyroRadX + quaternion[2] * gyroRadZ - quaternion[3] * gyroRadY);
+    float qDot3 = 0.5f * (quaternion[0] * gyroRadY - quaternion[1] * gyroRadZ + quaternion[3] * gyroRadX);
+    float qDot4 = 0.5f * (quaternion[0] * gyroRadZ + quaternion[1] * gyroRadY - quaternion[2] * gyroRadX);
+
+    // Integrate to yield quaternion
+    quaternion[0] += qDot1 * dt;
+    quaternion[1] += qDot2 * dt;
+    quaternion[2] += qDot3 * dt;
+    quaternion[3] += qDot4 * dt;
+
+    // Normalize the quaternion
+    float recipNorm = invSqrt(quaternion[0] * quaternion[0] + quaternion[1] * quaternion[1] + quaternion[2] * quaternion[2] + quaternion[3] * quaternion[3]);
+    quaternion[0] *= recipNorm;
+    quaternion[1] *= recipNorm;
+    quaternion[2] *= recipNorm;
+    quaternion[3] *= recipNorm;
+}
+
 
 void multiplyQuaternions(const float q1[4], const float q2[4], float result[4])
 {
@@ -205,11 +258,13 @@ void setMacAddress(String mac)
 
 #include <ArduinoJson.h>
 
-static float offsetXQuaternion[4] = {0.70710678118, 0.70710678118, 0, 0};
+static float offsetXQuaternion[4] = {1, 0, 0, 0}; // order is w, x, y, z
 
 void sendBMIData(int (*sendData)(String))
 {
     IntegrateDataMadgwick(); // Update orientation using Madgwick filter
+    //IntegrateDataGyroOnly(); // Update orientation using only gyroscope data
+    
      StaticJsonDocument<256> doc; // Adjust size as needed
     JsonObject imu = doc.createNestedObject("imu");
     JsonObject macObject = imu.createNestedObject(macAddress.c_str());

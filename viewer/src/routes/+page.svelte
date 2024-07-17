@@ -26,44 +26,18 @@
 <UdpTester />
   <div class="container">
     <div class="row">
-      <!-- <div class="col-sm">
+      <div class="col-sm">
         <Camera />
       </div>
-
-      <div class="col-xxl">
-        <Chest />
-      </div> -->
       <!-- <div class="col-sm">
+        <Cube />
+      </div>  -->
+
+      <div class="col-sm">
+        <IkSolverT />
+      </div> 
+      <div class="col-sm">
         <RawData />
-      </div>
-
-
-      <div class="col-xxl">
-        <div class="row">
-          <div class="col-xxl">
-            <Scheleton />
-          </div>
-        </div>
-        
-        <div class="row">
-          <div class="col-xxl">
-            <Test />
-          </div>
-        </div>
-        
-
-      </div>
-      <div class="col-xxl">
-        <Test2 />
-      </div>
-      <div class="col-xxl">
-        
-      </div> -->
-      <!-- <div class="col-xxl">
-        <Ik />
-      </div> -->
-    <!-- <IK_SolverT /> -->
-    <!-- <Cube /> -->
-    <MergedXR_IK />
+      </div> 
     </div>
   </div>
